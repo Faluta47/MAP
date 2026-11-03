@@ -6,14 +6,21 @@ import ro.ubb.map.retea.domain.Prietenie;
 import ro.ubb.map.retea.domain.Tuple;
 import ro.ubb.map.retea.domain.Utilizator;
 import ro.ubb.map.retea.exceptions.ValidationException;
+import ro.ubb.map.retea.repository.CriteriiUtilizator;
 import ro.ubb.map.retea.repository.memory.InMemoryRepository;
 import ro.ubb.map.retea.validators.PrietenieValidator;
 import ro.ubb.map.retea.validators.UtilizatorValidator;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class InMemoryRepositoryTest {
     private InMemoryRepository<Long, Utilizator> repo;
@@ -30,93 +37,59 @@ class InMemoryRepositoryTest {
     }
 
     @Test
-    void saveReturneazaNullCandSalveazaSiEntitateaCandIdulExista() {
+    void saveReturneazaEmptyCandSalveazaSiEntitateaCandIdulExista() {
         Utilizator u = utilizator(1L, "A");
-        assertNull(repo.save(u));
-        assertSame(u, repo.save(utilizator(1L, "B")));
-        assertEquals("A", repo.findOne(1L).getNume());
+        assertTrue(repo.save(u).isEmpty());
+        assertSame(u, repo.save(utilizator(1L, "B")).orElseThrow());
+        assertEquals("A", repo.findOne(1L).orElseThrow().getNume());
     }
 
     @Test
     void saveNullAruncaIllegalArgument() {
-        try {
-            repo.save(null);
-            fail("Se astepta IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            // asteptat
-        }
+        assertThrows(IllegalArgumentException.class, () -> repo.save(null));
     }
 
     @Test
     void saveInvalidAruncaValidationException() {
-        try {
-            repo.save(new Utilizator("", ""));
-            fail("Se astepta ValidationException");
-        } catch (ValidationException e) {
-            // asteptat
-        }
+        assertThrows(ValidationException.class, () -> repo.save(new Utilizator("", "")));
     }
 
     @Test
-    void findOneNullAruncaIllegalArgumentIarInexistentDaNull() {
-        assertNull(repo.findOne(5L));
-        try {
-            repo.findOne(null);
-            fail("Se astepta IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            // asteptat
-        }
+    void findOneNullAruncaIllegalArgumentIarInexistentDaEmpty() {
+        assertFalse(repo.findOne(5L).isPresent());
+        assertThrows(IllegalArgumentException.class, () -> repo.findOne(null));
     }
 
     @Test
-    void deleteReturneazaEntitateaStearsaSauNull() {
+    void deleteReturneazaEntitateaStearsaSauEmpty() {
         Utilizator u = utilizator(1L, "A");
         repo.save(u);
-        assertSame(u, repo.delete(1L));
-        assertNull(repo.delete(1L));
-        try {
-            repo.delete(null);
-            fail("Se astepta IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            // asteptat
-        }
+        assertSame(u, repo.delete(1L).orElseThrow());
+        assertTrue(repo.delete(1L).isEmpty());
+        assertThrows(IllegalArgumentException.class, () -> repo.delete(null));
     }
 
     @Test
-    void updateReturneazaNullCandActualizeazaSiEntitateaCandIdulLipseste() {
+    void updateReturneazaEmptyCandActualizeazaSiEntitateaCandIdulLipseste() {
         repo.save(utilizator(1L, "A"));
-        assertNull(repo.update(utilizator(1L, "Nou")));
-        assertEquals("Nou", repo.findOne(1L).getNume());
+        assertTrue(repo.update(utilizator(1L, "Nou")).isEmpty());
+        assertEquals("Nou", repo.findOne(1L).orElseThrow().getNume());
         Utilizator inexistent = utilizator(2L, "X");
-        assertSame(inexistent, repo.update(inexistent));
+        assertSame(inexistent, repo.update(inexistent).orElseThrow());
     }
 
     @Test
     void updateNullSauInvalidAruncaExceptii() {
         repo.save(utilizator(1L, "A"));
-        try {
-            repo.update(null);
-            fail("Se astepta IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            // asteptat
-        }
-        try {
-            repo.update(new Utilizator("P", ""));
-            fail("Se astepta ValidationException");
-        } catch (ValidationException e) {
-            // asteptat
-        }
+        assertThrows(IllegalArgumentException.class, () -> repo.update(null));
+        assertThrows(ValidationException.class, () -> repo.update(new Utilizator("P", "")));
     }
 
     @Test
     void findAllReturneazaToateEntitatile() {
         repo.save(utilizator(1L, "A"));
         repo.save(utilizator(2L, "B"));
-        int numar = 0;
-        for (Utilizator u : repo.findAll()) {
-            numar++;
-        }
-        assertEquals(2, numar);
+        assertEquals(2, repo.stream().count());
     }
 
     @Test
@@ -124,20 +97,30 @@ class InMemoryRepositoryTest {
         InMemoryRepository<Tuple<Long, Long>, Prietenie> repoP =
                 new InMemoryRepository<Tuple<Long, Long>, Prietenie>(new PrietenieValidator());
         Prietenie p = new Prietenie(1L, 2L);
-        assertNull(repoP.save(p));
-        assertSame(p, repoP.save(new Prietenie(2L, 1L)));
+        assertTrue(repoP.save(p).isEmpty());
+        assertSame(p, repoP.save(new Prietenie(2L, 1L)).orElseThrow());
     }
 
     @Test
-    void findByUsernameInMemoryGasesteSauIntoarceNull() {
-        ro.ubb.map.retea.repository.memory.UtilizatorInMemoryRepository repo =
-                new ro.ubb.map.retea.repository.memory.UtilizatorInMemoryRepository(
-                        new ro.ubb.map.retea.validators.UtilizatorValidator());
+    void findAllCuPredicatFiltreazaSiPastreazaOrdinea() {
+        repo.save(utilizator(1L, "Ana"));
+        repo.save(utilizator(2L, "Bob"));
+        repo.save(utilizator(3L, "Alina"));
+        List<Utilizator> rezultat = repo.findAll(CriteriiUtilizator.numeIncepeCu("a"));
+        assertEquals(List.of(1L, 3L), rezultat.stream().map(Utilizator::getId).collect(Collectors.toList()));
+        assertTrue(repo.findAll(CriteriiUtilizator.numeIncepeCu("z")).isEmpty());
+        assertThrows(IllegalArgumentException.class, () -> repo.findAll((Predicate<Utilizator>) null));
+    }
+
+    @Test
+    void usernameSeCautaCuCriteriuInLocDeMetodaDedicata() {
         Utilizator u = new Utilizator("Ion", "Pop");
         u.setId(1L);
         u.setUsername("ionp");
         repo.save(u);
-        assertEquals(1L, repo.findByUsername("ionp").getId().longValue());
-        assertNull(repo.findByUsername("altcineva"));
+        Optional<Utilizator> gasit = repo.findAll(CriteriiUtilizator.areUsername("ionp")).stream().findFirst();
+        assertEquals(1L, gasit.orElseThrow().getId().longValue());
+        assertTrue(repo.findAll(CriteriiUtilizator.areUsername("altcineva")).isEmpty());
+        assertThrows(IllegalArgumentException.class, () -> CriteriiUtilizator.areUsername(null));
     }
 }

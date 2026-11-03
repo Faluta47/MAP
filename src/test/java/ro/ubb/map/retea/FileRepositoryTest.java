@@ -3,11 +3,14 @@ package ro.ubb.map.retea;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import ro.ubb.map.retea.domain.Prietenie;
+import ro.ubb.map.retea.domain.Tuple;
 import ro.ubb.map.retea.domain.Utilizator;
 import ro.ubb.map.retea.exceptions.RepositoryException;
 import ro.ubb.map.retea.repository.LoadWarnings;
-import ro.ubb.map.retea.repository.file.PrietenieFileRepository;
-import ro.ubb.map.retea.repository.file.UtilizatorFileRepository;
+import ro.ubb.map.retea.repository.CriteriiUtilizator;
+import ro.ubb.map.retea.repository.file.FileRepository;
+import ro.ubb.map.retea.repository.file.PrietenieConverter;
+import ro.ubb.map.retea.repository.file.UtilizatorConverter;
 import ro.ubb.map.retea.service.PrietenieService;
 import ro.ubb.map.retea.service.PrietenieServiceImpl;
 import ro.ubb.map.retea.service.ReteaService;
@@ -22,22 +25,25 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.StreamSupport;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 class FileRepositoryTest {
 
-    private UtilizatorFileRepository repoUtilizatori(Path fisier, LoadWarnings warnings) {
-        return new UtilizatorFileRepository(new UtilizatorValidator(), fisier.toString(), warnings);
+    private FileRepository<Long, Utilizator> repoUtilizatori(Path fisier, LoadWarnings warnings) {
+        return new FileRepository<>(fisier.toString(), new UtilizatorValidator(), UtilizatorConverter::fromLine,
+                UtilizatorConverter::toLine, warnings);
     }
 
-    private PrietenieFileRepository repoPrietenii(Path fisier, UtilizatorFileRepository utilizatori,
-                                                  LoadWarnings warnings) {
-        return new PrietenieFileRepository(new PrietenieValidator(utilizatori), fisier.toString(), warnings);
+    private FileRepository<Tuple<Long, Long>, Prietenie> repoPrietenii(Path fisier,
+                                                                      FileRepository<Long, Utilizator> utilizatori,
+                                                                      LoadWarnings warnings) {
+        return new FileRepository<>(fisier.toString(), new PrietenieValidator(utilizatori),
+                PrietenieConverter::fromLine, PrietenieConverter::toLine, warnings);
     }
 
     private Utilizator utilizator(Long id, String prenume, String nume) {
@@ -50,40 +56,33 @@ class FileRepositoryTest {
         Files.write(fisier, continut.getBytes(StandardCharsets.UTF_8));
     }
 
-    private int numara(Iterable<?> elemente) {
-        int numar = 0;
-        for (Object o : elemente) {
-            numar++;
-        }
-        return numar;
+    private long numara(Iterable<?> elemente) {
+        return StreamSupport.stream(elemente.spliterator(), false).count();
     }
 
     // ---- username
 
     @Test
-    void findByUsernameGasesteUtilizatorulSalvatSiReincarcat(@TempDir Path dir) throws Exception {
+    void cautareaDupaUsernameGasesteUtilizatorulSalvatSiReincarcat(@TempDir Path dir) throws Exception {
         Path fisier = dir.resolve("u.txt");
-        UtilizatorFileRepository repo = repoUtilizatori(fisier, new LoadWarnings());
+        FileRepository<Long, Utilizator> repo = repoUtilizatori(fisier, new LoadWarnings());
         Utilizator u = utilizator(1L, "Ion", "Pop");
         u.setUsername("ionp");
-        assertNull(repo.save(u));
-        assertNull(repo.save(utilizator(2L, "Ana", "Ene")));
+        assertTrue(repo.save(u).isEmpty());
+        assertTrue(repo.save(utilizator(2L, "Ana", "Ene")).isEmpty());
         assertEquals("1;Ion;Pop;ionp", Files.readAllLines(fisier).get(0));
         assertEquals("2;Ana;Ene", Files.readAllLines(fisier).get(1));
 
-        UtilizatorFileRepository reincarcat = repoUtilizatori(fisier, new LoadWarnings());
-        assertEquals(1L, reincarcat.findByUsername("ionp").getId().longValue());
-        assertNull(reincarcat.findByUsername("inexistent"));
+        FileRepository<Long, Utilizator> reincarcat = repoUtilizatori(fisier, new LoadWarnings());
+        assertEquals(1L, reincarcat.findAll(CriteriiUtilizator.areUsername("ionp")).get(0).getId().longValue());
+        assertTrue(reincarcat.findAll(CriteriiUtilizator.areUsername("inexistent")).isEmpty());
     }
 
     @Test
-    void findByUsernameCuNullAruncaIllegalArgument(@TempDir Path dir) {
-        try {
-            repoUtilizatori(dir.resolve("u.txt"), new LoadWarnings()).findByUsername(null);
-            fail("Se astepta IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            assertFalse(e.getMessage().isEmpty());
-        }
+    void criteriulDeUsernameCuNullAruncaIllegalArgument() {
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> CriteriiUtilizator.areUsername(null));
+        assertFalse(e.getMessage().isEmpty());
     }
 
     // ---- fisier lipsa
@@ -92,12 +91,12 @@ class FileRepositoryTest {
     void fisierLipsaDaRepositoryGolSiFisierulSeCreeazaLaSalvare(@TempDir Path dir) throws Exception {
         Path fisier = dir.resolve("nou").resolve("utilizatori.txt");
         LoadWarnings warnings = new LoadWarnings();
-        UtilizatorFileRepository repo = repoUtilizatori(fisier, warnings);
+        FileRepository<Long, Utilizator> repo = repoUtilizatori(fisier, warnings);
         assertEquals(0, numara(repo.findAll()));
         assertTrue(warnings.getAll().isEmpty());
         assertFalse(Files.exists(fisier));
 
-        assertNull(repo.save(utilizator(1L, "Ion", "Pop")));
+        assertTrue(repo.save(utilizator(1L, "Ion", "Pop")).isEmpty());
         assertTrue(Files.exists(fisier));
         assertEquals("1;Ion;Pop", Files.readAllLines(fisier).get(0));
     }
@@ -116,47 +115,47 @@ class FileRepositoryTest {
     @Test
     void salveazaActualizeazaStergeSiReincarca(@TempDir Path dir) throws Exception {
         Path fisier = dir.resolve("u.txt");
-        UtilizatorFileRepository repo = repoUtilizatori(fisier, new LoadWarnings());
-        assertNull(repo.save(utilizator(1L, "Ion", "Pop")));
+        FileRepository<Long, Utilizator> repo = repoUtilizatori(fisier, new LoadWarnings());
+        assertTrue(repo.save(utilizator(1L, "Ion", "Pop")).isEmpty());
         assertEquals("1;Ion;Pop", Files.readAllLines(fisier).get(0));
 
-        assertNull(repo.update(utilizator(1L, "Ion", "Popa")));
+        assertTrue(repo.update(utilizator(1L, "Ion", "Popa")).isEmpty());
         assertEquals("1;Ion;Popa", Files.readAllLines(fisier).get(0));
 
-        UtilizatorFileRepository reincarcat = repoUtilizatori(fisier, new LoadWarnings());
-        assertEquals("Popa", reincarcat.findOne(1L).getNume());
-        assertTrue(reincarcat.findOne(1L).getPrieteni().isEmpty());
+        FileRepository<Long, Utilizator> reincarcat = repoUtilizatori(fisier, new LoadWarnings());
+        assertEquals("Popa", reincarcat.findOne(1L).orElseThrow().getNume());
+        assertTrue(reincarcat.findOne(1L).orElseThrow().getPrieteni().isEmpty());
 
         reincarcat.delete(1L);
         assertTrue(Files.readAllLines(fisier).isEmpty());
-        assertNull(repoUtilizatori(fisier, new LoadWarnings()).findOne(1L));
+        assertTrue(repoUtilizatori(fisier, new LoadWarnings()).findOne(1L).isEmpty());
     }
 
     @Test
     void operatiileEsuateNuReScriuFisierul(@TempDir Path dir) throws Exception {
         Path fisier = dir.resolve("u.txt");
         scrie(fisier, "1;Ion;Pop\n");
-        UtilizatorFileRepository repo = repoUtilizatori(fisier, new LoadWarnings());
+        FileRepository<Long, Utilizator> repo = repoUtilizatori(fisier, new LoadWarnings());
         long modificat = Files.getLastModifiedTime(fisier).toMillis();
-        assertEquals(1L, repo.save(utilizator(1L, "Alt", "Nume")).getId().longValue());
-        assertNull(repo.delete(5L));
+        assertEquals(1L, repo.save(utilizator(1L, "Alt", "Nume")).orElseThrow().getId().longValue());
+        assertTrue(repo.delete(5L).isEmpty());
         assertEquals(modificat, Files.getLastModifiedTime(fisier).toMillis());
         assertEquals("1;Ion;Pop", Files.readAllLines(fisier).get(0));
     }
 
     @Test
     void prieteniileSePastreazaCuDataSiNormalizate(@TempDir Path dir) throws Exception {
-        UtilizatorFileRepository utilizatori = repoUtilizatori(dir.resolve("u.txt"), new LoadWarnings());
+        FileRepository<Long, Utilizator> utilizatori = repoUtilizatori(dir.resolve("u.txt"), new LoadWarnings());
         utilizatori.save(utilizator(2L, "A", "B"));
         utilizatori.save(utilizator(5L, "C", "D"));
         Path fisier = dir.resolve("p.txt");
-        PrietenieFileRepository repo = repoPrietenii(fisier, utilizatori, new LoadWarnings());
+        FileRepository<Tuple<Long, Long>, Prietenie> repo = repoPrietenii(fisier, utilizatori, new LoadWarnings());
         LocalDateTime data = LocalDateTime.of(2026, 10, 19, 10, 30, 0);
-        assertNull(repo.save(new Prietenie(5L, 2L, data)));
+        assertTrue(repo.save(new Prietenie(5L, 2L, data)).isEmpty());
         assertTrue(Files.readAllLines(fisier).get(0).startsWith("2;5;2026-10-19T10:30"));
 
-        PrietenieFileRepository reincarcat = repoPrietenii(fisier, utilizatori, new LoadWarnings());
-        assertEquals(data, reincarcat.findOne(new Prietenie(2L, 5L).getId()).getData());
+        FileRepository<Tuple<Long, Long>, Prietenie> reincarcat = repoPrietenii(fisier, utilizatori, new LoadWarnings());
+        assertEquals(data, reincarcat.findOne(new Prietenie(2L, 5L).getId()).orElseThrow().getData());
     }
 
     @Test
@@ -164,7 +163,7 @@ class FileRepositoryTest {
         Path fisier = dir.resolve("u.txt");
         repoUtilizatori(fisier, new LoadWarnings()).save(utilizator(1L, "Ștefan", "Țăranu"));
         assertEquals("1;Ștefan;Țăranu", Files.readAllLines(fisier, StandardCharsets.UTF_8).get(0));
-        assertEquals("Țăranu", repoUtilizatori(fisier, new LoadWarnings()).findOne(1L).getNume());
+        assertEquals("Țăranu", repoUtilizatori(fisier, new LoadWarnings()).findOne(1L).orElseThrow().getNume());
     }
 
     // ---- linii corupte
@@ -188,10 +187,10 @@ class FileRepositoryTest {
                 + "1;Dublura;Id\n"
                 + "6;Vlad;Radu\n");
         LoadWarnings warnings = new LoadWarnings();
-        UtilizatorFileRepository repo = repoUtilizatori(fisier, warnings);
+        FileRepository<Long, Utilizator> repo = repoUtilizatori(fisier, warnings);
         assertEquals(2, numara(repo.findAll()));
-        assertEquals("Pop", repo.findOne(1L).getNume());
-        assertEquals("Radu", repo.findOne(6L).getNume());
+        assertEquals("Pop", repo.findOne(1L).orElseThrow().getNume());
+        assertEquals("Radu", repo.findOne(6L).orElseThrow().getNume());
 
         List<String> avertismente = warnings.getAll();
         assertEquals(4, avertismente.size());
@@ -207,7 +206,7 @@ class FileRepositoryTest {
 
     @Test
     void prieteniiCorupteSuntRaportateSiSarite(@TempDir Path dir) throws Exception {
-        UtilizatorFileRepository utilizatori = repoUtilizatori(dir.resolve("u.txt"), new LoadWarnings());
+        FileRepository<Long, Utilizator> utilizatori = repoUtilizatori(dir.resolve("u.txt"), new LoadWarnings());
         utilizatori.save(utilizator(1L, "A", "A"));
         utilizatori.save(utilizator(2L, "B", "B"));
         utilizatori.save(utilizator(3L, "C", "C"));
@@ -220,7 +219,7 @@ class FileRepositoryTest {
                 + "2;99;2026-09-01T10:00\n"
                 + "2;3;2026-09-02T10:00\n");
         LoadWarnings warnings = new LoadWarnings();
-        PrietenieFileRepository repo = repoPrietenii(fisier, utilizatori, warnings);
+        FileRepository<Tuple<Long, Long>, Prietenie> repo = repoPrietenii(fisier, utilizatori, warnings);
         assertEquals(2, numara(repo.findAll()));
 
         List<String> avertismente = warnings.getAll();
@@ -244,8 +243,8 @@ class FileRepositoryTest {
         scrie(fisierU, "1;A;A\n2;B;B\n3;C;C\n");
         scrie(fisierP, "1;2;2026-09-01T10:00\n1;3;2026-09-02T10:00\n2;3;2026-09-03T10:00\n");
         LoadWarnings warnings = new LoadWarnings();
-        UtilizatorFileRepository repoU = repoUtilizatori(fisierU, warnings);
-        PrietenieFileRepository repoP = repoPrietenii(fisierP, repoU, warnings);
+        FileRepository<Long, Utilizator> repoU = repoUtilizatori(fisierU, warnings);
+        FileRepository<Tuple<Long, Long>, Prietenie> repoP = repoPrietenii(fisierP, repoU, warnings);
         UtilizatorService utilizatorService = new UtilizatorServiceImpl(repoU, repoP);
 
         utilizatorService.stergeUtilizator(1L);
@@ -260,22 +259,12 @@ class FileRepositoryTest {
     @Test
     void prietenieCuUtilizatorInexistentNuSeSalveaza(@TempDir Path dir) throws Exception {
         Path fisierP = dir.resolve("p.txt");
-        UtilizatorFileRepository repoU = repoUtilizatori(dir.resolve("u.txt"), new LoadWarnings());
+        FileRepository<Long, Utilizator> repoU = repoUtilizatori(dir.resolve("u.txt"), new LoadWarnings());
         repoU.save(utilizator(1L, "A", "A"));
-        PrietenieFileRepository repoP = repoPrietenii(fisierP, repoU, new LoadWarnings());
+        FileRepository<Tuple<Long, Long>, Prietenie> repoP = repoPrietenii(fisierP, repoU, new LoadWarnings());
         PrietenieService prietenieService = new PrietenieServiceImpl(repoU, repoP);
-        try {
-            prietenieService.adaugaPrietenie(1L, 7L);
-            fail("Se astepta EntityNotFoundException");
-        } catch (ro.ubb.map.retea.exceptions.EntityNotFoundException e) {
-            // asteptat
-        }
-        try {
-            repoP.save(new Prietenie(1L, 7L));
-            fail("Se astepta ValidationException");
-        } catch (ro.ubb.map.retea.exceptions.ValidationException e) {
-            // asteptat
-        }
+        assertThrows(ro.ubb.map.retea.exceptions.EntityNotFoundException.class, () -> prietenieService.adaugaPrietenie(1L, 7L));
+        assertThrows(ro.ubb.map.retea.exceptions.ValidationException.class, () -> repoP.save(new Prietenie(1L, 7L)));
         assertFalse(Files.exists(fisierP));
     }
 
@@ -286,8 +275,8 @@ class FileRepositoryTest {
         scrie(fisierU, "1;A;A\n2;B;B\nrau\n");
         scrie(fisierP, "1;2;2026-09-01T10:00\n1;9;2026-09-01T10:00\n");
         LoadWarnings warnings = new LoadWarnings();
-        UtilizatorFileRepository repoU = repoUtilizatori(fisierU, warnings);
-        PrietenieFileRepository repoP = repoPrietenii(fisierP, repoU, warnings);
+        FileRepository<Long, Utilizator> repoU = repoUtilizatori(fisierU, warnings);
+        FileRepository<Tuple<Long, Long>, Prietenie> repoP = repoPrietenii(fisierP, repoU, warnings);
         ReteaService reteaService = new ReteaServiceImpl(repoU, repoP, warnings);
 
         List<String> avertismente = reteaService.getAvertismenteIncarcare();
@@ -301,41 +290,17 @@ class FileRepositoryTest {
 
     @Test
     void contractulCuNullAlRepositoryuluiDeFisier(@TempDir Path dir) {
-        UtilizatorFileRepository repo = repoUtilizatori(dir.resolve("u.txt"), new LoadWarnings());
-        try {
-            repo.findOne(null);
-            fail("Se astepta IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            // asteptat
-        }
-        try {
-            repo.save(null);
-            fail("Se astepta IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            // asteptat
-        }
-        try {
-            repo.delete(null);
-            fail("Se astepta IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            // asteptat
-        }
-        try {
-            repo.update(null);
-            fail("Se astepta IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            // asteptat
-        }
+        FileRepository<Long, Utilizator> repo = repoUtilizatori(dir.resolve("u.txt"), new LoadWarnings());
+        assertThrows(IllegalArgumentException.class, () -> repo.findOne(null));
+        assertThrows(IllegalArgumentException.class, () -> repo.save(null));
+        assertThrows(IllegalArgumentException.class, () -> repo.delete(null));
+        assertThrows(IllegalArgumentException.class, () -> repo.update(null));
     }
 
     @Test
     void fisierulNelizibilAruncaRepositoryException(@TempDir Path dir) {
         // a directory in place of the file: it exists but cannot be read as a file
-        try {
-            repoUtilizatori(dir, new LoadWarnings()).findAll();
-            fail("Se astepta RepositoryException");
-        } catch (RepositoryException e) {
-            assertTrue(e.getCause() != null);
-        }
+        RepositoryException e = assertThrows(RepositoryException.class, () -> repoUtilizatori(dir, new LoadWarnings()).findAll());
+        assertTrue(e.getCause() != null);
     }
 }

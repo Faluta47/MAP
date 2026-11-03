@@ -10,18 +10,19 @@ import ro.ubb.map.retea.repository.Repository;
 import ro.ubb.map.retea.repository.db.PrietenieDbRepository;
 import ro.ubb.map.retea.repository.db.UtilizatorDbRepository;
 import ro.ubb.map.retea.repository.factory.RepositoryFactory;
-import ro.ubb.map.retea.repository.file.PrietenieFileRepository;
-import ro.ubb.map.retea.repository.file.UtilizatorFileRepository;
+import ro.ubb.map.retea.repository.file.FileRepository;
 import ro.ubb.map.retea.repository.memory.InMemoryRepository;
-import ro.ubb.map.retea.repository.memory.UtilizatorInMemoryRepository;
 import ro.ubb.map.retea.validators.PrietenieValidator;
 import ro.ubb.map.retea.validators.UtilizatorValidator;
 
+import ro.ubb.map.retea.repository.factory.RepositoryType;
+
 import java.util.Properties;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 class RepositoryFactoryTest {
 
@@ -45,16 +46,16 @@ class RepositoryFactoryTest {
         RepositoryFactory f = factory(props("MEMORY"));
         Repository<Long, Utilizator> u = f.createUtilizatorRepository(new UtilizatorValidator());
         Repository<Tuple<Long, Long>, Prietenie> p = f.createPrietenieRepository(new PrietenieValidator());
-        assertEquals(UtilizatorInMemoryRepository.class, u.getClass());
+        assertEquals(InMemoryRepository.class, u.getClass());
         assertEquals(InMemoryRepository.class, p.getClass());
     }
 
     @Test
     void fileCreeazaFileRepositoryPentruAmbele() {
         RepositoryFactory f = factory(props("FILE"));
-        assertEquals(UtilizatorFileRepository.class,
+        assertEquals(FileRepository.class,
                 f.createUtilizatorRepository(new UtilizatorValidator()).getClass());
-        assertEquals(PrietenieFileRepository.class,
+        assertEquals(FileRepository.class,
                 f.createPrietenieRepository(new PrietenieValidator()).getClass());
     }
 
@@ -69,52 +70,53 @@ class RepositoryFactoryTest {
 
     @Test
     void tipulNuDepindeDeMajusculeSauMinuscule() {
-        assertEquals(UtilizatorInMemoryRepository.class,
+        assertEquals(InMemoryRepository.class,
                 factory(props("memory")).createUtilizatorRepository(new UtilizatorValidator()).getClass());
     }
 
     @Test
     void proprietateaTypeLipsaDaMesajClar() {
-        try {
-            factory(new Properties()).createPrietenieRepository(new PrietenieValidator());
-            fail("Se astepta ConfigException");
-        } catch (ConfigException e) {
-            assertTrue(e.getMessage().contains("repository.type"));
-        }
+        ConfigException e = assertThrows(ConfigException.class, () -> factory(new Properties()).createPrietenieRepository(new PrietenieValidator()));
+        assertTrue(e.getMessage().contains("repository.type"));
     }
 
     @Test
     void tipNecunoscutDaMesajCuValoarea() {
-        try {
-            factory(props("SQL")).createUtilizatorRepository(new UtilizatorValidator());
-            fail("Se astepta ConfigException");
-        } catch (ConfigException e) {
-            assertTrue(e.getMessage().contains("repository.type"));
-            assertTrue(e.getMessage().contains("SQL"));
-        }
+        ConfigException e = assertThrows(ConfigException.class, () -> factory(props("SQL")).createUtilizatorRepository(new UtilizatorValidator()));
+        assertTrue(e.getMessage().contains("repository.type"));
+        assertTrue(e.getMessage().contains("SQL"));
     }
 
     @Test
     void caleaFisieruluiLipsaDaMesajClar() {
         Properties p = props("FILE");
         p.remove("file.utilizatori");
-        try {
-            factory(p).createUtilizatorRepository(new UtilizatorValidator());
-            fail("Se astepta ConfigException");
-        } catch (ConfigException e) {
-            assertTrue(e.getMessage().contains("file.utilizatori"));
-        }
+        ConfigException e = assertThrows(ConfigException.class, () -> factory(p).createUtilizatorRepository(new UtilizatorValidator()));
+        assertTrue(e.getMessage().contains("file.utilizatori"));
     }
 
     @Test
     void urlulBazeiDeDateLipsaDaMesajClar() {
         Properties p = props("DATABASE");
         p.remove("db.url");
-        try {
-            factory(p).createPrietenieRepository(new PrietenieValidator());
-            fail("Se astepta ConfigException");
-        } catch (ConfigException e) {
-            assertTrue(e.getMessage().contains("db.url"));
-        }
+        ConfigException e = assertThrows(ConfigException.class, () -> factory(p).createPrietenieRepository(new PrietenieValidator()));
+        assertTrue(e.getMessage().contains("db.url"));
+    }
+
+    @Test
+    void fiecareTipAreUnCreatorPentruAmbeleRepository() {
+        Stream.of(RepositoryType.values()).forEach(tip -> {
+            RepositoryFactory f = factory(props(tip.name()));
+            assertTrue(f.createUtilizatorRepository(new UtilizatorValidator()) != null);
+            assertTrue(f.createPrietenieRepository(new PrietenieValidator()) != null);
+        });
+    }
+
+    @Test
+    void doarProprietatileTipuluiAlesSuntCitite() {
+        // MEMORY does not need the file or the database properties
+        Properties p = new Properties();
+        p.setProperty("repository.type", "MEMORY");
+        assertEquals(InMemoryRepository.class, factory(p).createUtilizatorRepository(new UtilizatorValidator()).getClass());
     }
 }
