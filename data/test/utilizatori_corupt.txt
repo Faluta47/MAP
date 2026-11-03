@@ -1,0 +1,8 @@
+1;Ion;Popescu
+2;Maria;Ionescu
+3;Mihai
+abc;Elena;Dumitru
+5; ;Stan
+6;Ana;Marin
+2;Duplicat;Id
+7;Vlad;Constantin

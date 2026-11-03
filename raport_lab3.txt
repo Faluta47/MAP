@@ -1,0 +1,149 @@
+RAPORT LABORATOR 3 - Retea de socializare
+==========================================
+
+0. STAREA INITIALA (inspectie)
+------------------------------
+Exista deja din Lab 2: Repository, Validator, InMemoryRepository, AbstractFileRepository (varianta
+incarcata in constructor, cu oprire la prima linie rea), UtilizatorFileRepository,
+PrietenieFileRepository, RepositoryFactory (MEMORY/FILE), RepositoryType, exceptiile proprii,
+teste JUnit 5 fara lambda, fisiere .csv cu email.
+De schimbat: interfete pentru service/UI, fara email, fara final in domain, incarcare lenesa +
+avertismente, DATABASE + scheletele, ConfigException, format .txt, date/teste de test, JavaDoc in
+engleza, readme, teste noi. Neatins (corect deja): algoritmii DFS/backtracking, InMemoryRepository
+(doar JavaDoc-ul tradus), contractul null, ServiceException, EntityNotFoundException.
+
+
+A) MODIFICARI FATA DE LAB 2, PE FISIERE
+---------------------------------------
+Stergeri: data/utilizatori.csv, data/prietenii.csv (cerut explicit).
+Fisiere noi (src/main/java/ro/ubb/map/retea/):
+  exceptions/ConfigException.java        exceptie unchecked pentru configurare lipsa/gresita
+  repository/LoadWarnings.java           colector pasiv de avertismente de incarcare
+  repository/db/UtilizatorDbRepository.java, PrietenieDbRepository.java   schelete (UnsupportedOperationException "... (Lab 4)")
+  service/UtilizatorServiceImpl.java, PrietenieServiceImpl.java, ReteaServiceImpl.java   (fostele clase, redenumite)
+  ui/UI.java                             interfata cu void run()
+Fisiere modificate:
+  domain/Entity.java, Tuple.java, Prietenie.java, Utilizator.java    fara final, getteri+setteri; Utilizator fara email, constructor (prenume, nume); JavaDoc EN; Tuple.equals cu instanceof
+  validators/Validator.java              fara "throws" unchecked in antet, JavaDoc EN
+  validators/UtilizatorValidator.java    fara email; numele nu pot contine ';' sau sfarsit de linie
+  validators/PrietenieValidator.java     al doilea constructor cu Repository<Long,Utilizator>: verifica ca utilizatorii exista
+  exceptions/*.java                      JavaDoc EN
+  repository/Repository.java             JavaDoc EN (+ @throws RepositoryException)
+  repository/memory/InMemoryRepository.java   JavaDoc EN, fara final
+  repository/file/AbstractFileRepository.java incarcare lenesa (ensureLoaded), super.save la incarcare, linie rea = avertisment si se sare, citire/scriere BufferedReader(FileReader)/BufferedWriter(FileWriter) UTF-8 in try-with-resources, fisierul se citeste integral inainte sa se modifice memoria
+  repository/file/UtilizatorFileRepository.java, PrietenieFileRepository.java   doar extractEntity/createEntityAsString; NumberFormatException/DateTimeParseException impachetate in RepositoryException; format nou
+  repository/factory/RepositoryType.java   + DATABASE
+  repository/factory/RepositoryFactory.java  + DATABASE, ConfigException, switch cu default care arunca, primeste LoadWarnings
+  service/UtilizatorService.java, PrietenieService.java, ReteaService.java   acum INTERFETE (JavaDoc EN); ReteaService + getAvertismenteIncarcare()
+  service/ComunitateSociabila.java       doar JavaDoc EN
+  ui/ConsoleUI.java                      implements UI, afiseaza avertismentele la pornire, prinde si UnsupportedOperationException, fara email
+  Main.java                              lucreaza cu tipurile interfetelor, catch ConfigException
+  src/main/resources/config.properties   cheile cerute: repository.type, file.utilizatori, file.prietenii, db.url, db.user, db.password
+  build.gradle                           neschimbat (fara JDBC)
+Date: data/utilizatori.txt (10 utilizatori), data/prietenii.txt (lant 1-2-3-4-5, comunitate densa 6-7-8-9, izolat 10),
+  data/test/utilizatori_corupt.txt, data/test/prietenii_corupt.txt.
+Teste (src/test/java/ro/ubb/map/retea/): InMemoryRepositoryTest, ValidatoriTest, ServiceTest (actualizate);
+  FileRepositoryTest (rescris), RepositoryFactoryTest (rescris), DomainTest (nou), DbRepositoryTest (nou).
+Documentatie: readme.txt rescris, docs/ regenerat, raport_lab3.txt (acest fisier).
+
+
+B) CERINTA DIN BAREM -> CLASA / METODA
+--------------------------------------
+1. Interfete pe toate straturile
+   Repository, Validator (existente) | UtilizatorService/PrietenieService/ReteaService + *Impl | UI + ConsoleUI
+   Main: Main.construiesteUI (variabile de tip interfata); UI depinde doar de interfetele de service (ConsoleUI, constructor)
+1. Fara final in domain
+   Entity, Tuple, Utilizator, Prietenie: fara final; setteri (Entity.setId, Tuple.setFirst/setSecond, Utilizator.setPrenume/setNume/setPrieteni, Prietenie.setData)
+2. Restrictii: fara lambda/::/stream/->: verificat cu grep (sectiunea C); switch clasic in ConsoleUI.executa si RepositoryFactory; fara serializare binara/lib externe/JDBC; cai relative data/...; UTF-8 explicit in AbstractFileRepository.readLines/writeData; fara catch generic
+3. Formate fisiere: UtilizatorFileRepository.extractEntity/createEntityAsString (id;prenume;nume), PrietenieFileRepository (id1;id2;data ISO); split(";", -1); .csv sterse; config.properties actualizat
+3. AbstractFileRepository (Template Method): clasa AbstractFileRepository; ensureLoaded() (lazy); incarcaLinie() foloseste super.save; writeData() dupa save/delete/update; constructor fara apeluri suprascriibile
+3. Validare si consistenta: PrietenieValidator(Repository) (utilizatori existenti, la save si la incarcare); UtilizatorServiceImpl.stergeUtilizator (cascada); AbstractFileRepository.incarcaLinie (prietenii spre utilizatori inexistenti = avertisment + ignorate); argumentare in readme sectiunea 5; normalizare in Prietenie(Long,Long,LocalDateTime)
+4. RepositoryType: MEMORY, FILE, DATABASE
+4. RepositoryFactory: createUtilizatorRepository/createPrietenieRepository (Repository<ID,E>), switch clasic cu default care arunca ConfigException
+4. config.properties: Main.incarcaConfig (Properties, try-with-resources, getResourceAsStream); RepositoryFactory.required/present/readType (cheie si valoare in mesaj)
+4. Scheletele DB: repository.db.UtilizatorDbRepository, PrietenieDbRepository (constructor validator,url,user,password; fiecare metoda UnsupportedOperationException)
+4. Dependente: service/UI/Main depind doar de Repository; singurul "new" pe repository concret este in RepositoryFactory (grep, sectiunea C)
+5. Exceptii unchecked: ValidationException, RepositoryException(String, Throwable), ConfigException, ServiceException, EntityNotFoundException
+5. Fisier inexistent: AbstractFileRepository.readLines (repository gol) + writeData (Files.createDirectories)
+5. Linie corupta: AbstractFileRepository.incarcaLinie + extractEntity din subclase; mesaj "fisier, linia N: motiv"; afisare: LoadWarnings -> ReteaService.getAvertismenteIncarcare -> ConsoleUI.afiseazaAvertismente (justificat in readme sectiunea 4)
+5. Unde se prind excepțiile: ConsoleUI.run/afiseazaAvertismente; Main.main prinde ConfigException; repository prinde doar pentru impachetare/avertisment
+6. JavaDoc EN cu @param/@return/@throws pe interfete si metode publice; unchecked doar in @throws, nu in antet (Validator.validate, services)
+6. Contracte: Repository (JavaDoc), InMemoryRepository/AbstractFileRepository (IllegalArgumentException la null); Entity.equals/hashCode, Tuple.equals (instanceof) / hashCode; docs/ generat fara erori
+7. Date/fisiere de test: sectiunea A
+8. Teste: FileRepositoryTest (fisier lipsa, linii corupte, persistenta, consistenta, null, UTF-8, fisier nelizibil), DomainTest (Tuple/Entity equals cu null si alt tip), RepositoryFactoryTest (MEMORY, FILE, DATABASE, lipsa, necunoscut), DbRepositoryTest (UnsupportedOperationException), InMemoryRepositoryTest (contract null); temporar prin @TempDir
+9. readme.txt: toate sectiunile cerute (rulare, factory, fisier lipsa/corupte, validare, Simple vs Abstract Factory, SOLID, sabloane, formate)
+
+
+C) REZULTATE
+------------
+Teste (Gradle 8.10.2 din ~/.gradle, --offline, nimic descarcat; nu exista ./gradlew in proiect):
+  InMemoryRepositoryTest 9, FileRepositoryTest 14, ServiceTest 14, ValidatoriTest 7, RepositoryFactoryTest 8,
+  DomainTest 6, DbRepositoryTest 2  = 60 teste, 0 esecuri, 0 erori.
+
+Verificari rulate (compilat in directorul temporar, config modificat doar in copia din classpath):
+ 1. Scenariu FILE: pornire (3 comunitati, cea mai sociabila = lantul 1..5, 4 muchii) -> adaugat utilizator 11 ->
+    prietenie 10-11 -> sters utilizatorul 3 (avea prieteni 2 si 4) -> iesire. Fisiere dupa: 3 dispare din
+    utilizatori.txt, 2-3 si 3-4 dispar din prietenii.txt, 10-11 apare. REPORNIRE: aceleasi date, 4 comunitati.
+ 2. Corupte (data/test/*_corupt.txt): 10 avertismente afisate, de ex.
+      utilizatori_corupt.txt, linia 3: se asteapta 3 campuri ... ; linia 4: id nenumeric 'abc' ; linia 5: Prenumele nu poate fi vid. ; linia 7: id duplicat
+      prietenii_corupt.txt, linia 2 (campuri), 3 (id nenumeric), 4 (data invalida), 5 (cu el insusi), 6 (Utilizatorul 99 nu exista), 8 (duplicat)
+    Restul a mers: 2 comunitati. Fisierele de test au ramas neschimbate.
+ 3. Fisier lipsa (data/tmp_nou/...): pornire cu repository gol; dupa adaugarea a 2 utilizatori si a unei prietenii
+    fisierele si folderul s-au creat; apoi sterse de mine.
+ 4. MEMORY: functioneaza, nu se scrie nimic in data/. DATABASE: UI afiseaza "Operatie indisponibila: findAll is not
+    implemented yet (Lab 4)", fara stack trace, programul nu se opreste.
+ 5. Config gresit (tip necunoscut BLA / lipsa repository.type / lipsa file.prietenii): mesaj clar din Main, fara stack trace.
+ 6. Restaurat: data/utilizatori.txt si data/prietenii.txt identice cu originalul (diff gol); config.properties pe FILE.
+ 7. Grep pe src/main si src/test: niciun "->", "::", "stream(", "catch (Exception", "catch (Throwable", "printStackTrace".
+    "new" pe repository concret in src/main: doar in RepositoryFactory. (In src/test exista "new" pe repository-uri
+    concrete, normal pentru teste.) build.gradle fara JDBC/driver.
+ 8. javadoc -Xdoclint:all: 0 erori, 6 avertismente (constructori impliciti fara comentariu + UserRepository).
+
+
+D) LOCURI RAMASE CU final (nu le-am schimbat)
+---------------------------------------------
+src/main/java/ro/ubb/map/retea/repository/factory/RepositoryFactory.java:25  static final String TYPE_KEY            (constanta)
+src/main/java/ro/ubb/map/retea/repository/factory/RepositoryFactory.java:26  static final String UTILIZATORI_FILE_KEY (constanta)
+src/main/java/ro/ubb/map/retea/repository/factory/RepositoryFactory.java:27  static final String PRIETENII_FILE_KEY   (constanta)
+src/main/java/ro/ubb/map/retea/repository/factory/RepositoryFactory.java:28  static final String DB_URL_KEY           (constanta)
+src/main/java/ro/ubb/map/retea/repository/factory/RepositoryFactory.java:29  static final String DB_USER_KEY          (constanta)
+src/main/java/ro/ubb/map/retea/repository/factory/RepositoryFactory.java:30  static final String DB_PASSWORD_KEY      (constanta)
+src/main/java/ro/ubb/map/retea/service/ComunitateSociabila.java:11  private final List<Utilizator> membri   (camp final, setat in constructor)
+src/main/java/ro/ubb/map/retea/service/ComunitateSociabila.java:12  private final int lungimeDrum           (camp final)
+src/main/java/ro/ubb/map/retea/service/ComunitateSociabila.java:13  private final List<Utilizator> drum     (camp final)
+src/test/java/ro/ubb/map/retea/ValidatoriTest.java:15  private final UtilizatorValidator utilizatorValidator (camp de test)
+src/test/java/ro/ubb/map/retea/ValidatoriTest.java:16  private final PrietenieValidator prietenieValidator   (camp de test)
+(Din restul proiectului am scos final din campurile mutate de mine in alte clase - repository, service, UI, validators -
+ doar acolo unde le-am atins; nu mai exista alte aparitii. Nu exista parametri sau variabile locale final.)
+Nota: scoaterea lui final din clasele atinse (InMemoryRepository, *ServiceImpl, ConsoleUI, RepositoryFactory etc.) a fost
+facuta pentru uniformitate in fisierele rescrise; daca vrei sa le pastrezi, spune-mi.
+
+
+E) SCENARIU DE DEMONSTRATIE PENTRU PREDARE
+------------------------------------------
+Pregatire: IntelliJ, Working directory = radacina proiectului, config.properties pe repository.type=FILE.
+ 1. Pornire normala (FILE): fara avertismente. Optiunea 5: 10 utilizatori. Optiunea 6: 3 comunitati.
+    Optiunea 7: lantul 1-2-3-4-5, 4 muchii.
+ 2. Optiunea 1: adaugi "Sorin" "Tudor" -> #11. Optiunea 3: prietenie 10 si 11. Se vede in data/utilizatori.txt si
+    data/prietenii.txt (se rescriu imediat). Optiunea 6: 3 comunitati (10 si 11 au format una).
+ 3. Optiunea 2: stergi utilizatorul 3 (are prieteni). Dispare din utilizatori.txt; prieteniile 2-3 si 3-4 dispar din
+    prietenii.txt. Optiunea 0 (iesire).
+ 4. REPORNIRE: aceleasi date; optiunea 6 -> 4 comunitati (lantul s-a rupt).
+ 5. Linii corupte: in config.properties pune file.utilizatori=data/test/utilizatori_corupt.txt si
+    file.prietenii=data/test/prietenii_corupt.txt, repornesti: apare lista de avertismente cu fisier, linia si motivul;
+    aplicatia merge cu liniile bune. (Nu salva nimic in aceasta stare, ca sa nu rescrii fisierele de test.)
+ 6. Fisier lipsa: file.utilizatori=data/nou/u.txt, file.prietenii=data/nou/p.txt: pornire cu 0 utilizatori; dupa prima
+    adaugare apar folderul data/nou/ si fisierele.
+ 7. MEMORY: repository.type=MEMORY: merge, dar nu se scrie nimic pe disc; la repornire datele dispar.
+ 8. DATABASE: repository.type=DATABASE: mesaj "Operatie indisponibila: ... not implemented yet (Lab 4)", fara stack trace.
+ 9. Config gresit: repository.type=BLA -> "Eroare de configurare: Valoare necunoscuta pentru repository.type: 'BLA' ...".
+10. La final: repository.type=FILE, file.* pe data/utilizatori.txt / data/prietenii.txt (restaureaza continutul din copia data/ initiala).
+Atentie: config.properties se citeste din classpath, deci dupa editare IntelliJ/Gradle trebuie sa recompileze (Run face asta singur).
+
+
+NEREZOLVAT / DE STIUT
+---------------------
+- repository/UserRepository.java (Lab 2, cu findByUsername() gol) nu mai e folosit de nimeni; l-am lasat, nu era in cerinta.
+  Se poate sterge.
+- Nu am rulat ./gradlew (nu exista in proiect); am folosit Gradle-ul local din ~/.gradle, offline.
+- Liniile corupte dispar din fisier la prima scriere (se rescrie doar ce e valid in memorie) - documentat in readme.
