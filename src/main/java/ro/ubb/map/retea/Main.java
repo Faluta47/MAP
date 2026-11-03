@@ -4,9 +4,9 @@ import ro.ubb.map.retea.domain.Prietenie;
 import ro.ubb.map.retea.domain.Tuple;
 import ro.ubb.map.retea.domain.Utilizator;
 import ro.ubb.map.retea.exceptions.ConfigException;
+import ro.ubb.map.retea.exceptions.ValidationException;
 import ro.ubb.map.retea.repository.LoadWarnings;
 import ro.ubb.map.retea.repository.Repository;
-import ro.ubb.map.retea.repository.UserRepository;
 import ro.ubb.map.retea.repository.factory.RepositoryFactory;
 import ro.ubb.map.retea.service.PrietenieService;
 import ro.ubb.map.retea.service.PrietenieServiceImpl;
@@ -30,6 +30,7 @@ import java.util.Scanner;
  * and starts the interface. It works only with the interface types.
  */
 public class Main {
+    private static final int MAX_LUNGIME_NUME = 30;
 
     /**
      * Starts the application. A configuration error is shown as a message and ends the program.
@@ -51,8 +52,13 @@ public class Main {
         LoadWarnings warnings = new LoadWarnings();
         RepositoryFactory factory = new RepositoryFactory(config, warnings);
 
-        Validator<Utilizator> utilizatorValidator = new UtilizatorValidator();
-        UserRepository repoUtilizatori = factory.createUtilizatorRepository(utilizatorValidator);
+        // extra rule written as a lambda and chained to the existing validator (no new class)
+        Validator<Utilizator> utilizatorValidator = new UtilizatorValidator().andThen(u -> {
+            if (u.getNume().trim().length() > MAX_LUNGIME_NUME) {
+                throw new ValidationException("Numele poate avea cel mult " + MAX_LUNGIME_NUME + " caractere.");
+            }
+        });
+        Repository<Long, Utilizator> repoUtilizatori = factory.createUtilizatorRepository(utilizatorValidator);
         // the friendship validator checks that the users exist, so it receives the users repository
         Validator<Prietenie> prietenieValidator = new PrietenieValidator(repoUtilizatori);
         Repository<Tuple<Long, Long>, Prietenie> repoPrietenii = factory.createPrietenieRepository(prietenieValidator);

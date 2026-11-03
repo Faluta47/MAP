@@ -57,7 +57,7 @@ public class PrietenieValidator implements Validator<Prietenie> {
     }
 
     private void verificaExista(Long id, StringBuilder erori) {
-        if (repoUtilizatori != null && repoUtilizatori.findOne(id) == null) {
+        if (repoUtilizatori != null && repoUtilizatori.findOne(id).isEmpty()) {
             erori.append("Utilizatorul ").append(id).append(" nu exista. ");
         }
     }
