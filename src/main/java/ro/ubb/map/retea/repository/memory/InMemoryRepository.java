@@ -8,6 +8,8 @@ import ro.ubb.map.retea.validators.Validator;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Repository that keeps the entities in memory, in a Map (insertion order is preserved).
@@ -30,11 +32,11 @@ public class InMemoryRepository<ID, E extends Entity<ID>> implements Repository<
 
     /** {@inheritDoc} */
     @Override
-    public E findOne(ID id) {
+    public Optional<E> findOne(ID id) {
         if (id == null) {
             throw new IllegalArgumentException("Id-ul nu poate fi null.");
         }
-        return entities.get(id);
+        return Optional.ofNullable(entities.get(id));
     }
 
     /**
@@ -43,31 +45,27 @@ public class InMemoryRepository<ID, E extends Entity<ID>> implements Repository<
      */
     @Override
     public Iterable<E> findAll() {
-        return new ArrayList<E>(entities.values());
+        return entities.values().stream().collect(Collectors.toCollection(ArrayList::new));
     }
 
     /** {@inheritDoc} */
     @Override
-    public E save(E entity) {
+    public Optional<E> save(E entity) {
         if (entity == null) {
             throw new IllegalArgumentException("Entitatea nu poate fi null.");
         }
         validator.validate(entity);
-        E existent = entities.get(entity.getId());
-        if (existent != null) {
-            return existent;
-        }
-        entities.put(entity.getId(), entity);
-        return null;
+        // putIfAbsent returns the existing entity (and keeps it), or null when the entity was stored
+        return Optional.ofNullable(entities.putIfAbsent(entity.getId(), entity));
     }
 
     /** {@inheritDoc} */
     @Override
-    public E delete(ID id) {
+    public Optional<E> delete(ID id) {
         if (id == null) {
             throw new IllegalArgumentException("Id-ul nu poate fi null.");
         }
-        return entities.remove(id);
+        return Optional.ofNullable(entities.remove(id));
     }
 
     /**
@@ -76,15 +74,12 @@ public class InMemoryRepository<ID, E extends Entity<ID>> implements Repository<
      * @throws ValidationException if the entity is not valid
      */
     @Override
-    public E update(E entity) {
+    public Optional<E> update(E entity) {
         if (entity == null) {
             throw new IllegalArgumentException("Entitatea nu poate fi null.");
         }
         validator.validate(entity);
-        if (entities.containsKey(entity.getId())) {
-            entities.put(entity.getId(), entity);
-            return null;
-        }
-        return entity;
+        // replace returns the previous entity, or null when the id is not stored
+        return entities.replace(entity.getId(), entity) == null ? Optional.of(entity) : Optional.empty();
     }
 }

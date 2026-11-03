@@ -1,14 +1,16 @@
 package ro.ubb.map.retea.repository.db;
 
 import ro.ubb.map.retea.domain.Utilizator;
-import ro.ubb.map.retea.repository.UserRepository;
+import ro.ubb.map.retea.repository.Repository;
 import ro.ubb.map.retea.validators.Validator;
+
+import java.util.Optional;
 
 /**
  * Database repository skeleton for users. Every operation throws
  * {@link UnsupportedOperationException} until it is implemented (Lab 4).
  */
-public class UtilizatorDbRepository implements UserRepository {
+public class UtilizatorDbRepository implements Repository<Long, Utilizator> {
     private Validator<Utilizator> validator;
     private String url;
     private String user;
@@ -37,7 +39,7 @@ public class UtilizatorDbRepository implements UserRepository {
      * @throws UnsupportedOperationException always
      */
     @Override
-    public Utilizator findOne(Long id) {
+    public Optional<Utilizator> findOne(Long id) {
         throw new UnsupportedOperationException("findOne is not implemented yet (Lab 4)");
     }
 
@@ -60,7 +62,7 @@ public class UtilizatorDbRepository implements UserRepository {
      * @throws UnsupportedOperationException always
      */
     @Override
-    public Utilizator save(Utilizator entity) {
+    public Optional<Utilizator> save(Utilizator entity) {
         throw new UnsupportedOperationException("save is not implemented yet (Lab 4)");
     }
 
@@ -72,7 +74,7 @@ public class UtilizatorDbRepository implements UserRepository {
      * @throws UnsupportedOperationException always
      */
     @Override
-    public Utilizator delete(Long id) {
+    public Optional<Utilizator> delete(Long id) {
         throw new UnsupportedOperationException("delete is not implemented yet (Lab 4)");
     }
 
@@ -84,19 +86,7 @@ public class UtilizatorDbRepository implements UserRepository {
      * @throws UnsupportedOperationException always
      */
     @Override
-    public Utilizator update(Utilizator entity) {
+    public Optional<Utilizator> update(Utilizator entity) {
         throw new UnsupportedOperationException("update is not implemented yet (Lab 4)");
-    }
-
-    /**
-     * Not implemented yet.
-     *
-     * @param username the username to look for
-     * @return never returns normally
-     * @throws UnsupportedOperationException always
-     */
-    @Override
-    public Utilizator findByUsername(String username) {
-        throw new UnsupportedOperationException("findByUsername is not implemented yet (Lab 4)");
     }
 }

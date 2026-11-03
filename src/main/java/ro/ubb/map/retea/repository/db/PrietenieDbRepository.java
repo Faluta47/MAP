@@ -5,6 +5,8 @@ import ro.ubb.map.retea.domain.Tuple;
 import ro.ubb.map.retea.repository.Repository;
 import ro.ubb.map.retea.validators.Validator;
 
+import java.util.Optional;
+
 /**
  * Database repository skeleton for friendships. Every operation throws
  * {@link UnsupportedOperationException} until it is implemented (Lab 4).
@@ -38,7 +40,7 @@ public class PrietenieDbRepository implements Repository<Tuple<Long, Long>, Prie
      * @throws UnsupportedOperationException always
      */
     @Override
-    public Prietenie findOne(Tuple<Long, Long> id) {
+    public Optional<Prietenie> findOne(Tuple<Long, Long> id) {
         throw new UnsupportedOperationException("findOne is not implemented yet (Lab 4)");
     }
 
@@ -61,7 +63,7 @@ public class PrietenieDbRepository implements Repository<Tuple<Long, Long>, Prie
      * @throws UnsupportedOperationException always
      */
     @Override
-    public Prietenie save(Prietenie entity) {
+    public Optional<Prietenie> save(Prietenie entity) {
         throw new UnsupportedOperationException("save is not implemented yet (Lab 4)");
     }
 
@@ -73,7 +75,7 @@ public class PrietenieDbRepository implements Repository<Tuple<Long, Long>, Prie
      * @throws UnsupportedOperationException always
      */
     @Override
-    public Prietenie delete(Tuple<Long, Long> id) {
+    public Optional<Prietenie> delete(Tuple<Long, Long> id) {
         throw new UnsupportedOperationException("delete is not implemented yet (Lab 4)");
     }
 
@@ -85,7 +87,7 @@ public class PrietenieDbRepository implements Repository<Tuple<Long, Long>, Prie
      * @throws UnsupportedOperationException always
      */
     @Override
-    public Prietenie update(Prietenie entity) {
+    public Optional<Prietenie> update(Prietenie entity) {
         throw new UnsupportedOperationException("update is not implemented yet (Lab 4)");
     }
 }

@@ -8,6 +8,6 @@ public enum RepositoryType {
     MEMORY,
     /** Data persisted in text files. */
     FILE,
-    /** Data persisted in a database (skeleton, implemented at Lab 4). */
+    /** Data persisted in a database (skeleton, implemented at Lab 5). */
     DATABASE
 }
