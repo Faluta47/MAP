@@ -8,8 +8,8 @@ import ro.ubb.map.retea.exceptions.ServiceException;
 import ro.ubb.map.retea.exceptions.ValidationException;
 import ro.ubb.map.retea.repository.Repository;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Default implementation of {@link PrietenieService}.
@@ -39,9 +39,9 @@ public class PrietenieServiceImpl implements PrietenieService {
         verificaExista(id1);
         verificaExista(id2);
         Prietenie p = new Prietenie(id1, id2);
-        if (repoPrietenii.save(p) != null) {
+        repoPrietenii.save(p).ifPresent(existenta -> {
             throw new ServiceException("Prietenia exista deja.");
-        }
+        });
         return p;
     }
 
@@ -51,26 +51,18 @@ public class PrietenieServiceImpl implements PrietenieService {
         if (id1 == null || id2 == null) {
             throw new ValidationException("Id-urile utilizatorilor nu pot fi null.");
         }
-        Prietenie sters = repoPrietenii.delete(new Prietenie(id1, id2).getId());
-        if (sters == null) {
-            throw new EntityNotFoundException("Prietenia " + id1 + " - " + id2 + " nu exista.");
-        }
-        return sters;
+        return repoPrietenii.delete(new Prietenie(id1, id2).getId())
+                .orElseThrow(() -> new EntityNotFoundException("Prietenia " + id1 + " - " + id2 + " nu exista."));
     }
 
     /** {@inheritDoc} */
     @Override
     public List<Prietenie> getPrietenii() {
-        List<Prietenie> rezultat = new ArrayList<Prietenie>();
-        for (Prietenie p : repoPrietenii.findAll()) {
-            rezultat.add(p);
-        }
-        return rezultat;
+        return repoPrietenii.stream().collect(Collectors.toList());
     }
 
     private void verificaExista(Long id) {
-        if (repoUtilizatori.findOne(id) == null) {
-            throw new EntityNotFoundException("Utilizatorul " + id + " nu exista.");
-        }
+        repoUtilizatori.findOne(id)
+                .orElseThrow(() -> new EntityNotFoundException("Utilizatorul " + id + " nu exista."));
     }
 }

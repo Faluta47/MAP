@@ -5,6 +5,8 @@ import ro.ubb.map.retea.exceptions.EntityNotFoundException;
 import ro.ubb.map.retea.exceptions.ValidationException;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
 
 /**
  * Business logic for users: add, delete (cascading to friendships), find, list.
@@ -34,10 +36,9 @@ public interface UtilizatorService {
      * Finds a user by id.
      *
      * @param id the id to look for
-     * @return the user found
-     * @throws EntityNotFoundException if the user does not exist
+     * @return the user found, or an empty Optional if the user does not exist
      */
-    Utilizator gasesteUtilizator(Long id);
+    Optional<Utilizator> gasesteUtilizator(Long id);
 
     /**
      * Returns the users, with the friends list filled in from the friendships.
@@ -45,4 +46,15 @@ public interface UtilizatorService {
      * @return the list of users
      */
     List<Utilizator> getUtilizatori();
+
+    /**
+     * Searches the users that satisfy a criterion. The friends lists are filled in first, so criteria
+     * based on friends (for example {@code CriteriiUtilizator.faraPrieteni()}) work.
+     *
+     * @param criteriu the criterion a user must satisfy; criteria can be combined with
+     *                 {@code and}, {@code or}, {@code negate}; cannot be null
+     * @return the matching users, in repository order; empty if there are none
+     * @throws IllegalArgumentException if the criterion is null
+     */
+    List<Utilizator> cautaUtilizatori(Predicate<Utilizator> criteriu);
 }

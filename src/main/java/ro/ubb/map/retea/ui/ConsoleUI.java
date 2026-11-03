@@ -5,13 +5,17 @@ import ro.ubb.map.retea.exceptions.EntityNotFoundException;
 import ro.ubb.map.retea.exceptions.RepositoryException;
 import ro.ubb.map.retea.exceptions.ServiceException;
 import ro.ubb.map.retea.exceptions.ValidationException;
+import ro.ubb.map.retea.repository.CriteriiUtilizator;
 import ro.ubb.map.retea.service.ComunitateSociabila;
 import ro.ubb.map.retea.service.PrietenieService;
 import ro.ubb.map.retea.service.ReteaService;
 import ro.ubb.map.retea.service.UtilizatorService;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Scanner;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Console interface: numbered menu, input reading and checking, results display.
@@ -41,7 +45,8 @@ public class ConsoleUI implements UI {
     /**
      * {@inheritDoc}
      * Shows the loading warnings first, then runs the menu loop. The application exceptions are
-     * caught here and shown as messages, without a stack trace.
+     * caught here and shown as messages, without a stack trace. The menu loop is the only loop left
+     * in the application: it repeats until the user exits and does not traverse a collection.
      */
     @Override
     public void run() {
@@ -68,9 +73,7 @@ public class ConsoleUI implements UI {
             List<String> avertismente = reteaService.getAvertismenteIncarcare();
             if (!avertismente.isEmpty()) {
                 System.out.println("Avertismente la incarcarea datelor (" + avertismente.size() + "):");
-                for (String avertisment : avertismente) {
-                    System.out.println("  ! " + avertisment);
-                }
+                avertismente.stream().map(avertisment -> "  ! " + avertisment).forEach(System.out::println);
             }
         } catch (RepositoryException e) {
             System.out.println("Eroare la incarcarea datelor: " + e.getMessage());
@@ -88,6 +91,7 @@ public class ConsoleUI implements UI {
         System.out.println("5. Afiseaza utilizatorii (cu prietenii lor)");
         System.out.println("6. Numar de comunitati");
         System.out.println("7. Cea mai sociabila comunitate");
+        System.out.println("8. Cauta utilizatori");
         System.out.println("0. Iesire");
         System.out.print("> ");
     }
@@ -116,6 +120,9 @@ public class ConsoleUI implements UI {
             case "7":
                 afiseazaCeaMaiSociabila();
                 break;
+            case "8":
+                cautaUtilizatori();
+                break;
             case "0":
                 return false;
             default:
@@ -125,34 +132,64 @@ public class ConsoleUI implements UI {
     }
 
     private void afiseazaUtilizatori() {
-        for (Utilizator x : utilizatorService.getUtilizatori()) {
-            System.out.println(x + " | prieteni: " + x.getPrieteni().size());
-            for (Utilizator prieten : x.getPrieteni()) {
-                System.out.println("    - " + prieten);
-            }
-        }
+        utilizatorService.getUtilizatori().forEach(this::afiseazaUtilizator);
+    }
+
+    private void afiseazaUtilizator(Utilizator x) {
+        System.out.println(x + " | prieteni: " + x.getPrieteni().size());
+        x.getPrieteni().stream().map(prieten -> "    - " + prieten).forEach(System.out::println);
     }
 
     private void afiseazaCeaMaiSociabila() {
-        ComunitateSociabila c = reteaService.ceaMaiSociabilaComunitate();
-        if (c == null) {
-            System.out.println("Nu exista utilizatori.");
-            return;
-        }
+        reteaService.ceaMaiSociabilaComunitate().ifPresentOrElse(this::afiseazaComunitate,
+                () -> System.out.println("Nu exista utilizatori."));
+    }
+
+    private void afiseazaComunitate(ComunitateSociabila c) {
         System.out.println("Membri:");
-        for (Utilizator m : c.getMembri()) {
-            System.out.println("  " + m);
-        }
+        c.getMembri().stream().map(m -> "  " + m).forEach(System.out::println);
         System.out.println("Lungime drum (muchii): " + c.getLungimeDrum());
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < c.getDrum().size(); i++) {
-            Utilizator m = c.getDrum().get(i);
-            if (i > 0) {
-                sb.append(" => ");
-            }
-            sb.append(m.getId()).append(" (").append(m.getPrenume()).append(' ').append(m.getNume()).append(')');
+        String drum = c.getDrum().stream()
+                .map(m -> m.getId() + " (" + m.getPrenume() + " " + m.getNume() + ")")
+                .collect(Collectors.joining(" => "));
+        System.out.println("Drum: " + drum);
+    }
+
+    /**
+     * Search: each filled-in answer adds a criterion; the criteria are combined with {@code and}.
+     * Several prefixes of the last name, separated by comma, are combined with {@code or}.
+     */
+    private void cautaUtilizatori() {
+        Predicate<Utilizator> numeCriteriu = citesteOptional("Nume incepe cu (prefixe separate prin virgula)")
+                .map(CriteriiUtilizator::numeIncepeCuUnulDin)
+                .orElse(utilizator -> true);
+        Predicate<Utilizator> prenumeCriteriu = citesteOptional("Prenume contine")
+                .map(CriteriiUtilizator::prenumeContine)
+                .orElse(utilizator -> true);
+        Predicate<Utilizator> minimCriteriu = citesteOptional("Numar minim de prieteni")
+                .map(this::parseazaNumar)
+                .map(CriteriiUtilizator::areMinimPrieteni)
+                .orElse(utilizator -> true);
+        Predicate<Utilizator> criteriu = numeCriteriu.and(prenumeCriteriu).and(minimCriteriu);
+        if (citesteOptional("Doar utilizatori fara prieteni? (da/nu)").filter("da"::equalsIgnoreCase).isPresent()) {
+            criteriu = criteriu.and(CriteriiUtilizator.faraPrieteni());
         }
-        System.out.println("Drum: " + sb);
+        List<Utilizator> gasiti = utilizatorService.cautaUtilizatori(criteriu);
+        System.out.println("Utilizatori gasiti: " + gasiti.size());
+        gasiti.stream().map(u -> "  " + u + " | prieteni: " + u.getPrieteni().size()).forEach(System.out::println);
+    }
+
+    /** Reads a line; a blank answer means "no criterion" and gives an empty Optional. */
+    private Optional<String> citesteOptional(String eticheta) {
+        return Optional.of(citeste(eticheta)).filter(Predicate.not(String::isEmpty));
+    }
+
+    private int parseazaNumar(String text) {
+        try {
+            return Integer.parseInt(text);
+        } catch (NumberFormatException e) {
+            throw new ValidationException("'" + text + "' nu este un numar valid.");
+        }
     }
 
     private String citeste(String eticheta) {

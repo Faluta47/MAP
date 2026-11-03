@@ -3,6 +3,7 @@ package ro.ubb.map.retea.service;
 import ro.ubb.map.retea.domain.Utilizator;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Analysis of the network: communities, the most sociable community and the loading report.
@@ -27,9 +28,9 @@ public interface ReteaService {
      * Finds the community that contains the longest elementary path (no repeated nodes) between two users.
      * On a tie, the first one found is kept.
      *
-     * @return the result, or null if there are no users
+     * @return the result, or an empty Optional if there are no users
      */
-    ComunitateSociabila ceaMaiSociabilaComunitate();
+    Optional<ComunitateSociabila> ceaMaiSociabilaComunitate();
 
     /**
      * Returns the warnings produced while loading the persistent data (corrupt or inconsistent lines).

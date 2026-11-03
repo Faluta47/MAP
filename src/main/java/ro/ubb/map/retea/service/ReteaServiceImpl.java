@@ -1,21 +1,27 @@
 package ro.ubb.map.retea.service;
 
+import ro.ubb.map.retea.domain.Entity;
 import ro.ubb.map.retea.domain.Prietenie;
 import ro.ubb.map.retea.domain.Tuple;
 import ro.ubb.map.retea.domain.Utilizator;
 import ro.ubb.map.retea.repository.LoadWarnings;
 import ro.ubb.map.retea.repository.Repository;
 
-import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Default implementation of {@link ReteaService}: builds the friendship graph (adjacency lists)
- * and runs DFS (communities) and backtracking (longest path) on it.
+ * and runs DFS (communities) and a recursive search (longest path) on it, both written with streams.
  */
 public class ReteaServiceImpl implements ReteaService {
     private Repository<Long, Utilizator> repoUtilizatori;
@@ -56,97 +62,99 @@ public class ReteaServiceImpl implements ReteaService {
     @Override
     public List<List<Utilizator>> comunitati() {
         Map<Long, Utilizator> utilizatori = incarcaUtilizatori();
-        Map<Long, List<Long>> adiacenta = construiesteGraf(utilizatori);
-        Set<Long> vizitati = new HashSet<Long>();
-        List<List<Utilizator>> rezultat = new ArrayList<List<Utilizator>>();
-        for (Long id : utilizatori.keySet()) {
-            if (!vizitati.contains(id)) {
-                List<Utilizator> componenta = new ArrayList<Utilizator>();
-                dfs(id, adiacenta, utilizatori, vizitati, componenta);
-                rezultat.add(componenta);
-            }
-        }
-        return rezultat;
+        return comunitati(utilizatori, construiesteGraf(utilizatori));
     }
 
     /** {@inheritDoc} */
     @Override
-    public ComunitateSociabila ceaMaiSociabilaComunitate() {
+    public Optional<ComunitateSociabila> ceaMaiSociabilaComunitate() {
         Map<Long, Utilizator> utilizatori = incarcaUtilizatori();
         Map<Long, List<Long>> adiacenta = construiesteGraf(utilizatori);
-        ComunitateSociabila cea = null;
-        for (List<Utilizator> componenta : comunitati()) {
-            List<Long> celMaiBun = new ArrayList<Long>();
-            for (Utilizator start : componenta) {
-                List<Long> curent = new ArrayList<Long>();
-                Set<Long> pePath = new HashSet<Long>();
-                curent.add(start.getId());
-                pePath.add(start.getId());
-                cautaDrum(start.getId(), adiacenta, pePath, curent, celMaiBun);
-            }
-            int lungime = celMaiBun.size() - 1;
-            if (cea == null || lungime > cea.getLungimeDrum()) {
-                List<Utilizator> drum = new ArrayList<Utilizator>();
-                for (Long id : celMaiBun) {
-                    drum.add(utilizatori.get(id));
-                }
-                cea = new ComunitateSociabila(componenta, lungime, drum);
-            }
-        }
-        return cea;
+        // max keeps the first element among equals (OpenJDK BinaryOperator.maxBy), so on a tie
+        // the first community found wins, as before the refactoring
+        return comunitati(utilizatori, adiacenta).stream()
+                .map(componenta -> comunitateSociabila(componenta, utilizatori, adiacenta))
+                .max(Comparator.comparingInt(ComunitateSociabila::getLungimeDrum));
     }
 
     private Map<Long, Utilizator> incarcaUtilizatori() {
-        Map<Long, Utilizator> utilizatori = new LinkedHashMap<Long, Utilizator>();
-        for (Utilizator u : repoUtilizatori.findAll()) {
-            utilizatori.put(u.getId(), u);
-        }
-        return utilizatori;
+        return repoUtilizatori.stream()
+                .collect(Collectors.toMap(Entity::getId, Function.identity(), (primul, al2lea) -> primul,
+                        LinkedHashMap::new));
     }
 
-    /** Builds the adjacency lists; ignores friendships that refer to missing users. */
+    /**
+     * Builds the adjacency lists; ignores friendships that refer to missing users. Every friendship
+     * gives two directed edges, kept in the order of the friendships, so the neighbours of a user are
+     * listed in the order the friendships were stored.
+     */
     private Map<Long, List<Long>> construiesteGraf(Map<Long, Utilizator> utilizatori) {
-        Map<Long, List<Long>> adiacenta = new LinkedHashMap<Long, List<Long>>();
-        for (Long id : utilizatori.keySet()) {
-            adiacenta.put(id, new ArrayList<Long>());
-        }
-        for (Prietenie p : repoPrietenii.findAll()) {
-            List<Long> vecini1 = adiacenta.get(p.getIdUtilizator1());
-            List<Long> vecini2 = adiacenta.get(p.getIdUtilizator2());
-            if (vecini1 != null && vecini2 != null) {
-                vecini1.add(p.getIdUtilizator2());
-                vecini2.add(p.getIdUtilizator1());
-            }
-        }
-        return adiacenta;
+        Map<Long, List<Long>> vecini = repoPrietenii.stream()
+                .filter(p -> utilizatori.containsKey(p.getIdUtilizator1())
+                        && utilizatori.containsKey(p.getIdUtilizator2()))
+                .flatMap(p -> Stream.of(Map.entry(p.getIdUtilizator1(), p.getIdUtilizator2()),
+                        Map.entry(p.getIdUtilizator2(), p.getIdUtilizator1())))
+                .collect(Collectors.groupingBy(Map.Entry::getKey, Collectors.mapping(Map.Entry::getValue,
+                        Collectors.toList())));
+        return utilizatori.keySet().stream()
+                .collect(Collectors.toMap(Function.identity(), id -> vecini.getOrDefault(id, Collections.emptyList()),
+                        (primul, al2lea) -> primul, LinkedHashMap::new));
     }
 
-    private void dfs(Long nod, Map<Long, List<Long>> adiacenta, Map<Long, Utilizator> utilizatori,
-                     Set<Long> vizitati, List<Utilizator> componenta) {
+    /**
+     * The connected components, in the order of their first member (in repository order); each one lists its
+     * members in DFS pre-order starting from that first member. A DFS from every user gives the set of
+     * users reachable from it; the sets of users of the same community are equal, so distinct()
+     * keeps only the one found first, that is the one started from the first member.
+     */
+    private List<List<Utilizator>> comunitati(Map<Long, Utilizator> utilizatori, Map<Long, List<Long>> adiacenta) {
+        return utilizatori.keySet().stream()
+                .map(id -> dfs(id, adiacenta, new LinkedHashSet<>()))
+                .distinct()
+                .map(componenta -> componenta.stream().map(utilizatori::get).collect(Collectors.toList()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * DFS that fills {@code vizitati} (a set local to the caller, in visiting order) with the nodes
+     * reachable from {@code nod}. The neighbours are processed through a stream: the filter is evaluated
+     * element by element, so it already sees the nodes visited by the previous recursive calls.
+     */
+    private Set<Long> dfs(Long nod, Map<Long, List<Long>> adiacenta, Set<Long> vizitati) {
         vizitati.add(nod);
-        componenta.add(utilizatori.get(nod));
-        for (Long vecin : adiacenta.get(nod)) {
-            if (!vizitati.contains(vecin)) {
-                dfs(vecin, adiacenta, utilizatori, vizitati, componenta);
-            }
-        }
+        adiacenta.get(nod).stream()
+                .filter(vecin -> !vizitati.contains(vecin))
+                .forEach(vecin -> dfs(vecin, adiacenta, vizitati));
+        return vizitati;
     }
 
-    /** Backtracking: extends the current path with each neighbour not yet on it and keeps the longest path found. */
-    private void cautaDrum(Long nod, Map<Long, List<Long>> adiacenta, Set<Long> pePath,
-                           List<Long> curent, List<Long> celMaiBun) {
-        if (curent.size() > celMaiBun.size()) {
-            celMaiBun.clear();
-            celMaiBun.addAll(curent);
-        }
-        for (Long vecin : adiacenta.get(nod)) {
-            if (!pePath.contains(vecin)) {
-                pePath.add(vecin);
-                curent.add(vecin);
-                cautaDrum(vecin, adiacenta, pePath, curent, celMaiBun);
-                curent.remove(curent.size() - 1);
-                pePath.remove(vecin);
-            }
-        }
+    private ComunitateSociabila comunitateSociabila(List<Utilizator> componenta, Map<Long, Utilizator> utilizatori,
+                                                    Map<Long, List<Long>> adiacenta) {
+        List<Long> celMaiBun = componenta.stream()
+                .map(start -> celMaiLungDrum(Collections.singletonList(start.getId()), adiacenta))
+                .max(Comparator.comparingInt(List::size))
+                .orElseThrow(() -> new IllegalStateException("O comunitate are cel putin un membru."));
+        List<Utilizator> drum = celMaiBun.stream().map(utilizatori::get).collect(Collectors.toList());
+        return new ComunitateSociabila(componenta, celMaiBun.size() - 1, drum);
+    }
+
+    /**
+     * Recursive search of the longest elementary path that starts with {@code drum}: the path itself or
+     * the best extension through each neighbour of its last node that is not on it yet. On a tie the first
+     * path found in this order is kept. This is the exhaustive search (backtracking) of the previous
+     * version, with immutable paths instead of a shared list that is modified and restored.
+     */
+    private List<Long> celMaiLungDrum(List<Long> drum, Map<Long, List<Long>> adiacenta) {
+        Long ultim = drum.get(drum.size() - 1);
+        Stream<List<Long>> extinderi = adiacenta.get(ultim).stream()
+                .filter(vecin -> !drum.contains(vecin))
+                .map(vecin -> celMaiLungDrum(extinde(drum, vecin), adiacenta));
+        return Stream.concat(Stream.of(drum), extinderi)
+                .max(Comparator.comparingInt(List::size))
+                .orElse(drum);
+    }
+
+    private static List<Long> extinde(List<Long> drum, Long nod) {
+        return Stream.concat(drum.stream(), Stream.of(nod)).collect(Collectors.toList());
     }
 }
