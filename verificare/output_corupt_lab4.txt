@@ -1,0 +1,137 @@
+Avertismente la incarcarea datelor (10):
+  ! utilizatori_corupt.txt, linia 3: se asteapta 3 campuri (id;prenume;nume), sau 4 cu username, gasite 2 (continut: "3;Mihai")
+  ! utilizatori_corupt.txt, linia 4: id nenumeric 'abc' (continut: "abc;Elena;Dumitru")
+  ! utilizatori_corupt.txt, linia 5: Prenumele nu poate fi vid. (continut: "5; ;Stan")
+  ! utilizatori_corupt.txt, linia 7: id duplicat (continut: "2;Duplicat;Id")
+  ! prietenii_corupt.txt, linia 2: se asteapta 3 campuri (id1;id2;data), gasite 2 (continut: "1;2")
+  ! prietenii_corupt.txt, linia 3: id nenumeric (continut: "1;x;2026-09-01T10:00")
+  ! prietenii_corupt.txt, linia 4: data invalida 'luni-dimineata' (continut: "2;6;luni-dimineata")
+  ! prietenii_corupt.txt, linia 5: Un utilizator nu poate fi prieten cu el insusi. (continut: "3;3;2026-09-01T10:00")
+  ! prietenii_corupt.txt, linia 6: Utilizatorul 99 nu exista. (continut: "2;99;2026-09-01T10:00")
+  ! prietenii_corupt.txt, linia 8: id duplicat (continut: "1;2;2026-10-10T10:00")
+
+1. Adauga utilizator
+2. Sterge utilizator
+3. Adauga prietenie
+4. Sterge prietenie
+5. Afiseaza utilizatorii (cu prietenii lor)
+6. Numar de comunitati
+7. Cea mai sociabila comunitate
+8. Cauta utilizatori
+0. Iesire
+> #1 Ion Popescu | prieteni: 1
+    - #2 Maria Ionescu
+#2 Maria Ionescu | prieteni: 1
+    - #1 Ion Popescu
+#6 Ana Marin | prieteni: 1
+    - #7 Vlad Constantin
+#7 Vlad Constantin | prieteni: 1
+    - #6 Ana Marin
+
+1. Adauga utilizator
+2. Sterge utilizator
+3. Adauga prietenie
+4. Sterge prietenie
+5. Afiseaza utilizatorii (cu prietenii lor)
+6. Numar de comunitati
+7. Cea mai sociabila comunitate
+8. Cauta utilizatori
+0. Iesire
+> Numar comunitati: 2
+
+1. Adauga utilizator
+2. Sterge utilizator
+3. Adauga prietenie
+4. Sterge prietenie
+5. Afiseaza utilizatorii (cu prietenii lor)
+6. Numar de comunitati
+7. Cea mai sociabila comunitate
+8. Cauta utilizatori
+0. Iesire
+> Membri:
+  #1 Ion Popescu
+  #2 Maria Ionescu
+Lungime drum (muchii): 1
+Drum: 1 (Ion Popescu) => 2 (Maria Ionescu)
+
+1. Adauga utilizator
+2. Sterge utilizator
+3. Adauga prietenie
+4. Sterge prietenie
+5. Afiseaza utilizatorii (cu prietenii lor)
+6. Numar de comunitati
+7. Cea mai sociabila comunitate
+8. Cauta utilizatori
+0. Iesire
+> Prenume: Nume: Adaugat: #8 Test Nou
+
+1. Adauga utilizator
+2. Sterge utilizator
+3. Adauga prietenie
+4. Sterge prietenie
+5. Afiseaza utilizatorii (cu prietenii lor)
+6. Numar de comunitati
+7. Cea mai sociabila comunitate
+8. Cauta utilizatori
+0. Iesire
+> Id 1: Id 2: Eroare: Utilizatorul 11 nu exista.
+
+1. Adauga utilizator
+2. Sterge utilizator
+3. Adauga prietenie
+4. Sterge prietenie
+5. Afiseaza utilizatorii (cu prietenii lor)
+6. Numar de comunitati
+7. Cea mai sociabila comunitate
+8. Cauta utilizatori
+0. Iesire
+> Id 1: Id 2: Eroare: Prietenia exista deja.
+
+1. Adauga utilizator
+2. Sterge utilizator
+3. Adauga prietenie
+4. Sterge prietenie
+5. Afiseaza utilizatorii (cu prietenii lor)
+6. Numar de comunitati
+7. Cea mai sociabila comunitate
+8. Cauta utilizatori
+0. Iesire
+> Id: Sters: #7 Vlad Constantin
+
+1. Adauga utilizator
+2. Sterge utilizator
+3. Adauga prietenie
+4. Sterge prietenie
+5. Afiseaza utilizatorii (cu prietenii lor)
+6. Numar de comunitati
+7. Cea mai sociabila comunitate
+8. Cauta utilizatori
+0. Iesire
+> Numar comunitati: 3
+
+1. Adauga utilizator
+2. Sterge utilizator
+3. Adauga prietenie
+4. Sterge prietenie
+5. Afiseaza utilizatorii (cu prietenii lor)
+6. Numar de comunitati
+7. Cea mai sociabila comunitate
+8. Cauta utilizatori
+0. Iesire
+> #1 Ion Popescu | prieteni: 1
+    - #2 Maria Ionescu
+#2 Maria Ionescu | prieteni: 1
+    - #1 Ion Popescu
+#6 Ana Marin | prieteni: 0
+#8 Test Nou | prieteni: 0
+
+1. Adauga utilizator
+2. Sterge utilizator
+3. Adauga prietenie
+4. Sterge prietenie
+5. Afiseaza utilizatorii (cu prietenii lor)
+6. Numar de comunitati
+7. Cea mai sociabila comunitate
+8. Cauta utilizatori
+0. Iesire
+> 

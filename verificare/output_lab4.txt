@@ -1,0 +1,171 @@
+
+1. Adauga utilizator
+2. Sterge utilizator
+3. Adauga prietenie
+4. Sterge prietenie
+5. Afiseaza utilizatorii (cu prietenii lor)
+6. Numar de comunitati
+7. Cea mai sociabila comunitate
+8. Cauta utilizatori
+0. Iesire
+> #1 Ion Popescu | prieteni: 1
+    - #2 Maria Ionescu
+#2 Maria Ionescu | prieteni: 2
+    - #1 Ion Popescu
+    - #3 Mihai Georgescu
+#3 Mihai Georgescu | prieteni: 2
+    - #2 Maria Ionescu
+    - #4 Elena Dumitru
+#4 Elena Dumitru | prieteni: 2
+    - #3 Mihai Georgescu
+    - #5 Andrei Stan
+#5 Andrei Stan | prieteni: 1
+    - #4 Elena Dumitru
+#6 Ana Marin | prieteni: 3
+    - #7 Vlad Constantin
+    - #8 Irina Radu
+    - #9 Paul Dinu
+#7 Vlad Constantin | prieteni: 3
+    - #6 Ana Marin
+    - #8 Irina Radu
+    - #9 Paul Dinu
+#8 Irina Radu | prieteni: 3
+    - #6 Ana Marin
+    - #7 Vlad Constantin
+    - #9 Paul Dinu
+#9 Paul Dinu | prieteni: 3
+    - #6 Ana Marin
+    - #7 Vlad Constantin
+    - #8 Irina Radu
+#10 Diana Barbu | prieteni: 0
+
+1. Adauga utilizator
+2. Sterge utilizator
+3. Adauga prietenie
+4. Sterge prietenie
+5. Afiseaza utilizatorii (cu prietenii lor)
+6. Numar de comunitati
+7. Cea mai sociabila comunitate
+8. Cauta utilizatori
+0. Iesire
+> Numar comunitati: 3
+
+1. Adauga utilizator
+2. Sterge utilizator
+3. Adauga prietenie
+4. Sterge prietenie
+5. Afiseaza utilizatorii (cu prietenii lor)
+6. Numar de comunitati
+7. Cea mai sociabila comunitate
+8. Cauta utilizatori
+0. Iesire
+> Membri:
+  #1 Ion Popescu
+  #2 Maria Ionescu
+  #3 Mihai Georgescu
+  #4 Elena Dumitru
+  #5 Andrei Stan
+Lungime drum (muchii): 4
+Drum: 1 (Ion Popescu) => 2 (Maria Ionescu) => 3 (Mihai Georgescu) => 4 (Elena Dumitru) => 5 (Andrei Stan)
+
+1. Adauga utilizator
+2. Sterge utilizator
+3. Adauga prietenie
+4. Sterge prietenie
+5. Afiseaza utilizatorii (cu prietenii lor)
+6. Numar de comunitati
+7. Cea mai sociabila comunitate
+8. Cauta utilizatori
+0. Iesire
+> Prenume: Nume: Adaugat: #11 Test Nou
+
+1. Adauga utilizator
+2. Sterge utilizator
+3. Adauga prietenie
+4. Sterge prietenie
+5. Afiseaza utilizatorii (cu prietenii lor)
+6. Numar de comunitati
+7. Cea mai sociabila comunitate
+8. Cauta utilizatori
+0. Iesire
+> Id 1: Id 2: Adaugata: 1 - 11 (din 2026-11-03T16:11:38)
+
+1. Adauga utilizator
+2. Sterge utilizator
+3. Adauga prietenie
+4. Sterge prietenie
+5. Afiseaza utilizatorii (cu prietenii lor)
+6. Numar de comunitati
+7. Cea mai sociabila comunitate
+8. Cauta utilizatori
+0. Iesire
+> Id 1: Id 2: Eroare: Prietenia exista deja.
+
+1. Adauga utilizator
+2. Sterge utilizator
+3. Adauga prietenie
+4. Sterge prietenie
+5. Afiseaza utilizatorii (cu prietenii lor)
+6. Numar de comunitati
+7. Cea mai sociabila comunitate
+8. Cauta utilizatori
+0. Iesire
+> Id: Sters: #7 Vlad Constantin
+
+1. Adauga utilizator
+2. Sterge utilizator
+3. Adauga prietenie
+4. Sterge prietenie
+5. Afiseaza utilizatorii (cu prietenii lor)
+6. Numar de comunitati
+7. Cea mai sociabila comunitate
+8. Cauta utilizatori
+0. Iesire
+> Numar comunitati: 3
+
+1. Adauga utilizator
+2. Sterge utilizator
+3. Adauga prietenie
+4. Sterge prietenie
+5. Afiseaza utilizatorii (cu prietenii lor)
+6. Numar de comunitati
+7. Cea mai sociabila comunitate
+8. Cauta utilizatori
+0. Iesire
+> #1 Ion Popescu | prieteni: 2
+    - #2 Maria Ionescu
+    - #11 Test Nou
+#2 Maria Ionescu | prieteni: 2
+    - #1 Ion Popescu
+    - #3 Mihai Georgescu
+#3 Mihai Georgescu | prieteni: 2
+    - #2 Maria Ionescu
+    - #4 Elena Dumitru
+#4 Elena Dumitru | prieteni: 2
+    - #3 Mihai Georgescu
+    - #5 Andrei Stan
+#5 Andrei Stan | prieteni: 1
+    - #4 Elena Dumitru
+#6 Ana Marin | prieteni: 2
+    - #8 Irina Radu
+    - #9 Paul Dinu
+#8 Irina Radu | prieteni: 2
+    - #6 Ana Marin
+    - #9 Paul Dinu
+#9 Paul Dinu | prieteni: 2
+    - #6 Ana Marin
+    - #8 Irina Radu
+#10 Diana Barbu | prieteni: 0
+#11 Test Nou | prieteni: 1
+    - #1 Ion Popescu
+
+1. Adauga utilizator
+2. Sterge utilizator
+3. Adauga prietenie
+4. Sterge prietenie
+5. Afiseaza utilizatorii (cu prietenii lor)
+6. Numar de comunitati
+7. Cea mai sociabila comunitate
+8. Cauta utilizatori
+0. Iesire
+> 
