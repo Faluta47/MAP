@@ -116,16 +116,18 @@ public class ReteaServiceImpl implements ReteaService {
     }
 
     /**
-     * DFS that fills {@code vizitati} (a set local to the caller, in visiting order) with the nodes
-     * reachable from {@code nod}. The neighbours are processed through a stream: the filter is evaluated
-     * element by element, so it already sees the nodes visited by the previous recursive calls.
+     * DFS without shared mutable state: returns a new set (in visiting order) with {@code vizitati} plus
+     * the nodes reachable from {@code nod}. The neighbours are folded with {@code reduce}: the accumulator
+     * is the set visited so far, and each unvisited neighbour replaces it with the set returned by the
+     * recursive call. The combiner is required by the API but never used (the stream is sequential).
      */
     private Set<Long> dfs(Long nod, Map<Long, List<Long>> adiacenta, Set<Long> vizitati) {
-        vizitati.add(nod);
-        adiacenta.get(nod).stream()
-                .filter(vecin -> !vizitati.contains(vecin))
-                .forEach(vecin -> dfs(vecin, adiacenta, vizitati));
-        return vizitati;
+        Set<Long> cuNod = new LinkedHashSet<>(vizitati);
+        cuNod.add(nod);
+        return adiacenta.get(nod).stream()
+                .reduce(cuNod,
+                        (acumulat, vecin) -> acumulat.contains(vecin) ? acumulat : dfs(vecin, adiacenta, acumulat),
+                        (stanga, dreapta) -> stanga);
     }
 
     private ComunitateSociabila comunitateSociabila(List<Utilizator> componenta, Map<Long, Utilizator> utilizatori,
