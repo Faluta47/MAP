@@ -11,6 +11,7 @@ import ro.ubb.map.retea.service.PrietenieService;
 import ro.ubb.map.retea.service.ReteaService;
 import ro.ubb.map.retea.service.UtilizatorService;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
@@ -157,7 +158,9 @@ public class ConsoleUI implements UI {
 
     /**
      * Search: each filled-in answer adds a criterion; the criteria are combined with {@code and}.
-     * Several prefixes of the last name, separated by comma, are combined with {@code or}.
+     * Several prefixes of the last name, separated by comma, are combined with {@code or}; "only users with
+     * friends" is the {@code negate} of "no friends". The results are sorted by last name, then first name
+     * (optionally reversed).
      */
     private void cautaUtilizatori() {
         Predicate<Utilizator> numeCriteriu = citesteOptional("Nume incepe cu (prefixe separate prin virgula)")
@@ -173,8 +176,17 @@ public class ConsoleUI implements UI {
         Predicate<Utilizator> criteriu = numeCriteriu.and(prenumeCriteriu).and(minimCriteriu);
         if (citesteOptional("Doar utilizatori fara prieteni? (da/nu)").filter("da"::equalsIgnoreCase).isPresent()) {
             criteriu = criteriu.and(CriteriiUtilizator.faraPrieteni());
+        } else if (citesteOptional("Doar utilizatori cu prieteni? (da/nu)").filter("da"::equalsIgnoreCase).isPresent()) {
+            criteriu = criteriu.and(CriteriiUtilizator.faraPrieteni().negate());
         }
-        List<Utilizator> gasiti = utilizatorService.cautaUtilizatori(criteriu);
+        Comparator<Utilizator> ordine = Comparator.comparing(Utilizator::getNume)
+                .thenComparing(Utilizator::getPrenume);
+        if (citesteOptional("Ordine descrescatoare dupa nume? (da/nu)").filter("da"::equalsIgnoreCase).isPresent()) {
+            ordine = ordine.reversed();
+        }
+        List<Utilizator> gasiti = utilizatorService.cautaUtilizatori(criteriu).stream()
+                .sorted(ordine)
+                .collect(Collectors.toList());
         System.out.println("Utilizatori gasiti: " + gasiti.size());
         gasiti.stream().map(u -> "  " + u + " | prieteni: " + u.getPrieteni().size()).forEach(System.out::println);
     }

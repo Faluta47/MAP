@@ -8,7 +8,7 @@ import java.util.Optional;
 
 /**
  * Database repository skeleton for users. Every operation throws
- * {@link UnsupportedOperationException} until it is implemented (Lab 4).
+ * {@link UnsupportedOperationException} until it is implemented (Lab 5).
  */
 public class UtilizatorDbRepository implements Repository<Long, Utilizator> {
     private Validator<Utilizator> validator;
@@ -40,7 +40,7 @@ public class UtilizatorDbRepository implements Repository<Long, Utilizator> {
      */
     @Override
     public Optional<Utilizator> findOne(Long id) {
-        throw new UnsupportedOperationException("findOne is not implemented yet (Lab 4)");
+        throw new UnsupportedOperationException("findOne is not implemented yet (Lab 5)");
     }
 
     /**
@@ -51,7 +51,7 @@ public class UtilizatorDbRepository implements Repository<Long, Utilizator> {
      */
     @Override
     public Iterable<Utilizator> findAll() {
-        throw new UnsupportedOperationException("findAll is not implemented yet (Lab 4)");
+        throw new UnsupportedOperationException("findAll is not implemented yet (Lab 5)");
     }
 
     /**
@@ -63,7 +63,7 @@ public class UtilizatorDbRepository implements Repository<Long, Utilizator> {
      */
     @Override
     public Optional<Utilizator> save(Utilizator entity) {
-        throw new UnsupportedOperationException("save is not implemented yet (Lab 4)");
+        throw new UnsupportedOperationException("save is not implemented yet (Lab 5)");
     }
 
     /**
@@ -75,7 +75,7 @@ public class UtilizatorDbRepository implements Repository<Long, Utilizator> {
      */
     @Override
     public Optional<Utilizator> delete(Long id) {
-        throw new UnsupportedOperationException("delete is not implemented yet (Lab 4)");
+        throw new UnsupportedOperationException("delete is not implemented yet (Lab 5)");
     }
 
     /**
@@ -87,6 +87,6 @@ public class UtilizatorDbRepository implements Repository<Long, Utilizator> {
      */
     @Override
     public Optional<Utilizator> update(Utilizator entity) {
-        throw new UnsupportedOperationException("update is not implemented yet (Lab 4)");
+        throw new UnsupportedOperationException("update is not implemented yet (Lab 5)");
     }
 }

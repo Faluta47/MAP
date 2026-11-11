@@ -76,8 +76,8 @@ FileRepository.writeData               BufferedWriter + for + write            s
                                                                                 + Files.write
 ConsoleUI.afiseazaUtilizatori / ...    for-each + println                      forEach(this::...), map + forEach(
                                                                                 System.out::println), joining(" => ")
-UsernameSearch.find                    for + if (sters)                        Predicate CriteriiUtilizator.areUsername
-                                                                                + findAll(Predicate)
+ConsoleUI.cautaUtilizatori             (nou in Lab 4)                          Predicate and/or/negate + sorted(
+                                                                                comparing.thenComparing[.reversed()])
 
 
 4. INTERFETE FUNCTIONALE FOLOSITE SI UNDE
@@ -88,10 +88,11 @@ Predicate<T>        Repository.findAll(Predicate), CriteriiUtilizator (and, or, 
                     UtilizatorService.cautaUtilizatori, filter(...) in service-uri si repository-uri.
 Function<T,R>       FileRepository (parser Function<String,E>, formatter Function<E,String>); RepositoryFactory
                     (Function<Validator<E>, Repository<ID,E>> in EnumMap); map(...), Function.identity().
-Supplier, BinaryOp. Supplier in orElseThrow(() -> new ...Exception(...)), BinaryOperator in toMap(merge)
-                    si Predicate::and / Predicate::or in reduce.
+BinaryOperator    Supplier in orElseThrow(() -> new ...Exception(...)); BinaryOperator in toMap(merge),
+                    Predicate::or in reduce (CriteriiUtilizator) si reduce-ul din ReteaServiceImpl.dfs.
 Consumer<T>         forEach(...), Optional.ifPresent / ifPresentOrElse (Runnable pentru ramura "gol").
-Comparator<T>       Comparator.comparingInt(...) in max(...) pentru comunitati si drumuri. Nu exista compare scris
+Comparator<T>       comparingInt in max(...) pentru comunitati si drumuri; comparing(Utilizator::getNume)
+                    .thenComparing(getPrenume) [.reversed()] in ConsoleUI.cautaUtilizatori (sorted). Nu exista compare scris
                     de mana si nici scaderi (a, b) -> a - b.
 
 
@@ -148,7 +149,8 @@ Constructor                      InMemoryRepository::new (RepositoryFactory), Ar
   aduna in continuare toate erorile proprii intr-un mesaj.
 
 6.5 Comunitati
-  comunitati(): se porneste un dfs (pur din exterior: multimea vizitata este locala apelului) din fiecare utilizator;
+  comunitati(): se porneste un dfs fara stare partajata (fiecare apel intoarce o multime noua; vecinii se
+  parcurg cu reduce, acumulatorul fiind multimea vizitata pana atunci, deci filtrul nu depinde de efectele altui pas) din fiecare utilizator;
   componentele aceleiasi comunitati dau multimi egale, iar distinct() o pastreaza pe prima, cea pornita din primul
   membru - exact ordinea si pre-ordinea DFS de la Lab 3 (verificat pe 60 de grafuri aleatoare, vezi punctul 12).
   Cea mai sociabila: max(Comparator.comparingInt(getLungimeDrum)) peste comunitati. Implementarea OpenJDK a lui
@@ -199,8 +201,7 @@ OCP  Tip nou de persistenta = intrare in EnumMap-urile din RepositoryFactory + o
 SRP  FileRepository (citeste/scrie fisierul), Converter-ele (linie <-> entitate), RepositoryFactory (creeaza),
      LoadWarnings (aduna mesaje), ConsoleUI (interactiune), ReteaServiceImpl (graful).
 LSP  InMemoryRepository, FileRepository si *DbRepository respecta acelasi contract (Optional, null -> IAE);
-     exceptie declarata: scheletele DB arunca UnsupportedOperationException (mesajul a ramas "(Lab 4)" ca sa nu se schimbe
-     outputul; DB se implementeaza la Lab 5).
+     exceptie declarata: scheletele DB arunca UnsupportedOperationException (mesajul spune "(Lab 5)": DB se implementeaza la Lab 5).
 ISP  Interfete mici: Validator (o metoda abstracta), UI, Repository (CRUD + 2 metode default), trei service-uri.
 Strategy: Validator, Predicate (criterii), Function (parser/formatter), Repository (persistenta). Simple Factory cu
 tabel de creatori: RepositoryFactory. Decorator: BufferedReader/Writer nu mai apar (Files.lines/write). Dependency
@@ -247,11 +248,12 @@ b) Trei locuri inainte/dupa (git diff lab3 lab4 -- <fisier>):
       -> map(membri) [intermediara] -> collect(toList()) [terminala]. Cea mai sociabila: map(comunitateSociabila)
       [intermediara] -> max(comparingInt(getLungimeDrum)) [terminala, intoarce Optional] -> ifPresentOrElse in UI.
 c) Regula de validare noua doar prin lambda (in Main, la construirea validatorului):
-      new UtilizatorValidator().andThen(u -> { if (u.getPrenume().trim().length() > 20) throw new ValidationException("..."); })
+      new UtilizatorValidator().andThen(u -> { if (u.getNume().trim().length() > 30) throw new ValidationException("..."); })
 d) Criteriu de cautare nou doar prin lambda (fara clase noi), de exemplu in ConsoleUI/test:
       Predicate<Utilizator> c = CriteriiUtilizator.numeIncepeCu("Po").and(u -> u.getPrenume().startsWith("I"));
       utilizatorService.cautaUtilizatori(c).forEach(System.out::println);
-   sau din meniu, optiunea 8 (prefixe de nume separate prin virgula = or; celelalte raspunsuri = and).
+   sau din meniu, optiunea 8 (prefixe de nume separate prin virgula = or; celelalte raspunsuri = and; "cu prieteni" =
+   negate; rezultatele sunt sortate dupa nume si prenume, optional descrescator).
 
 
 13. DATE DE DEMONSTRATIE

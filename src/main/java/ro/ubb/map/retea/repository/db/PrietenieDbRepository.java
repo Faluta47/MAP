@@ -9,7 +9,7 @@ import java.util.Optional;
 
 /**
  * Database repository skeleton for friendships. Every operation throws
- * {@link UnsupportedOperationException} until it is implemented (Lab 4).
+ * {@link UnsupportedOperationException} until it is implemented (Lab 5).
  */
 public class PrietenieDbRepository implements Repository<Tuple<Long, Long>, Prietenie> {
     private Validator<Prietenie> validator;
@@ -41,7 +41,7 @@ public class PrietenieDbRepository implements Repository<Tuple<Long, Long>, Prie
      */
     @Override
     public Optional<Prietenie> findOne(Tuple<Long, Long> id) {
-        throw new UnsupportedOperationException("findOne is not implemented yet (Lab 4)");
+        throw new UnsupportedOperationException("findOne is not implemented yet (Lab 5)");
     }
 
     /**
@@ -52,7 +52,7 @@ public class PrietenieDbRepository implements Repository<Tuple<Long, Long>, Prie
      */
     @Override
     public Iterable<Prietenie> findAll() {
-        throw new UnsupportedOperationException("findAll is not implemented yet (Lab 4)");
+        throw new UnsupportedOperationException("findAll is not implemented yet (Lab 5)");
     }
 
     /**
@@ -64,7 +64,7 @@ public class PrietenieDbRepository implements Repository<Tuple<Long, Long>, Prie
      */
     @Override
     public Optional<Prietenie> save(Prietenie entity) {
-        throw new UnsupportedOperationException("save is not implemented yet (Lab 4)");
+        throw new UnsupportedOperationException("save is not implemented yet (Lab 5)");
     }
 
     /**
@@ -76,7 +76,7 @@ public class PrietenieDbRepository implements Repository<Tuple<Long, Long>, Prie
      */
     @Override
     public Optional<Prietenie> delete(Tuple<Long, Long> id) {
-        throw new UnsupportedOperationException("delete is not implemented yet (Lab 4)");
+        throw new UnsupportedOperationException("delete is not implemented yet (Lab 5)");
     }
 
     /**
@@ -88,6 +88,6 @@ public class PrietenieDbRepository implements Repository<Tuple<Long, Long>, Prie
      */
     @Override
     public Optional<Prietenie> update(Prietenie entity) {
-        throw new UnsupportedOperationException("update is not implemented yet (Lab 4)");
+        throw new UnsupportedOperationException("update is not implemented yet (Lab 5)");
     }
 }

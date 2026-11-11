@@ -10,6 +10,7 @@ import ro.ubb.map.retea.repository.db.UtilizatorDbRepository;
 import ro.ubb.map.retea.validators.PrietenieValidator;
 import ro.ubb.map.retea.validators.UtilizatorValidator;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -17,7 +18,8 @@ class DbRepositoryTest {
 
     private void cereNeimplementat(String operatie, String mesaj) {
         assertTrue(mesaj.contains(operatie), mesaj);
-        assertTrue(mesaj.contains("Lab 4"), mesaj);
+        assertTrue(mesaj.contains("Lab 5"), mesaj);
+        assertFalse(mesaj.contains("Lab 4"), mesaj);
     }
 
     @Test
