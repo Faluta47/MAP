@@ -2,92 +2,151 @@ package ro.ubb.map.retea.repository.db;
 
 import ro.ubb.map.retea.domain.Prietenie;
 import ro.ubb.map.retea.domain.Tuple;
-import ro.ubb.map.retea.repository.Repository;
+import ro.ubb.map.retea.exceptions.RepositoryException;
+import ro.ubb.map.retea.exceptions.ValidationException;
 import ro.ubb.map.retea.validators.Validator;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 /**
- * Database repository skeleton for friendships. Every operation throws
- * {@link UnsupportedOperationException} until it is implemented (Lab 5).
+ * PostgreSQL repository for friendships (table {@code friendships}). The id of a friendship is the pair
+ * (id1, id2) with id1 &lt; id2, already normalized by the domain. All the statements are
+ * {@link PreparedStatement}s with {@code ?} parameters.
  */
-public class PrietenieDbRepository implements Repository<Tuple<Long, Long>, Prietenie> {
-    private Validator<Prietenie> validator;
-    private String url;
-    private String user;
-    private String password;
-
+public class PrietenieDbRepository extends AbstractDbRepository<Tuple<Long, Long>, Prietenie> {
     /**
-     * Creates the repository skeleton; no connection is opened.
+     * Creates the repository; no connection is opened.
      *
-     * @param validator the validator of the entities
+     * @param validator the validator of the friendships
      * @param url       the database url (db.url)
      * @param user      the database user (db.user)
      * @param password  the database password (db.password)
      */
     public PrietenieDbRepository(Validator<Prietenie> validator, String url, String user, String password) {
-        this.validator = validator;
-        this.url = url;
-        this.user = user;
-        this.password = password;
+        super(validator, url, user, password);
     }
 
     /**
-     * Not implemented yet.
+     * {@inheritDoc}
      *
-     * @param id the id to look for
-     * @return never returns normally
-     * @throws UnsupportedOperationException always
+     * @throws RepositoryException if the database cannot be accessed
      */
     @Override
     public Optional<Prietenie> findOne(Tuple<Long, Long> id) {
-        throw new UnsupportedOperationException("findOne is not implemented yet (Lab 5)");
+        requireNonNull(id, "Id-ul nu poate fi null.");
+        try (Connection c = connect();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT id1, id2, friends_from FROM friendships WHERE id1 = ? AND id2 = ?")) {
+            setId(ps, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? Optional.of(toPrietenie(rs)) : Optional.empty();
+            }
+        } catch (SQLException e) {
+            throw wrap(e);
+        }
     }
 
     /**
-     * Not implemented yet.
+     * {@inheritDoc}
      *
-     * @return never returns normally
-     * @throws UnsupportedOperationException always
+     * @throws RepositoryException if the database cannot be accessed
      */
     @Override
     public Iterable<Prietenie> findAll() {
-        throw new UnsupportedOperationException("findAll is not implemented yet (Lab 5)");
+        List<Prietenie> prietenii = new ArrayList<>();
+        try (Connection c = connect();
+             PreparedStatement ps = c.prepareStatement("SELECT id1, id2, friends_from FROM friendships ORDER BY id1, id2");
+             ResultSet rs = ps.executeQuery()) {
+            // a ResultSet is a cursor, not a collection: it can only be traversed with next()
+            while (rs.next()) {
+                prietenii.add(toPrietenie(rs));
+            }
+            return prietenii;
+        } catch (SQLException e) {
+            throw wrap(e);
+        }
     }
 
     /**
-     * Not implemented yet.
+     * {@inheritDoc}
      *
-     * @param entity the entity to save
-     * @return never returns normally
-     * @throws UnsupportedOperationException always
+     * @return an empty Optional if the friendship was saved, otherwise the given entity (it already exists)
+     * @throws ValidationException if the friendship is not valid
+     * @throws RepositoryException if the database cannot be accessed
      */
     @Override
     public Optional<Prietenie> save(Prietenie entity) {
-        throw new UnsupportedOperationException("save is not implemented yet (Lab 5)");
+        requireNonNull(entity, "Entitatea nu poate fi null.");
+        validator.validate(entity);
+        try (Connection c = connect();
+             PreparedStatement ps = c.prepareStatement("INSERT INTO friendships(id1, id2, friends_from) VALUES (?, ?, ?) ON CONFLICT (id1, id2) DO NOTHING")) {
+            setId(ps, entity.getId());
+            ps.setTimestamp(3, Timestamp.valueOf(entity.getData()));
+            // 0 inserted rows: the friendship already exists
+            return ps.executeUpdate() == 0 ? Optional.of(entity) : Optional.empty();
+        } catch (SQLException e) {
+            throw wrap(e);
+        }
     }
 
     /**
-     * Not implemented yet.
+     * {@inheritDoc}
      *
-     * @param id the id of the entity to delete
-     * @return never returns normally
-     * @throws UnsupportedOperationException always
+     * @throws RepositoryException if the database cannot be accessed
      */
     @Override
     public Optional<Prietenie> delete(Tuple<Long, Long> id) {
-        throw new UnsupportedOperationException("delete is not implemented yet (Lab 5)");
+        requireNonNull(id, "Id-ul nu poate fi null.");
+        try (Connection c = connect();
+             PreparedStatement ps = c.prepareStatement(
+                     "DELETE FROM friendships WHERE id1 = ? AND id2 = ? RETURNING id1, id2, friends_from")) {
+            setId(ps, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? Optional.of(toPrietenie(rs)) : Optional.empty();
+            }
+        } catch (SQLException e) {
+            throw wrap(e);
+        }
     }
 
     /**
-     * Not implemented yet.
+     * {@inheritDoc}
+     * Only the date of the friendship can change.
      *
-     * @param entity the new version of the entity
-     * @return never returns normally
-     * @throws UnsupportedOperationException always
+     * @throws ValidationException if the friendship is not valid
+     * @throws RepositoryException if the database cannot be accessed
      */
     @Override
     public Optional<Prietenie> update(Prietenie entity) {
-        throw new UnsupportedOperationException("update is not implemented yet (Lab 5)");
+        requireNonNull(entity, "Entitatea nu poate fi null.");
+        validator.validate(entity);
+        try (Connection c = connect();
+             PreparedStatement ps = c.prepareStatement(
+                     "UPDATE friendships SET friends_from = ? WHERE id1 = ? AND id2 = ?")) {
+            ps.setTimestamp(1, Timestamp.valueOf(entity.getData()));
+            ps.setLong(2, entity.getIdUtilizator1());
+            ps.setLong(3, entity.getIdUtilizator2());
+            return ps.executeUpdate() == 0 ? Optional.of(entity) : Optional.empty();
+        } catch (SQLException e) {
+            throw wrap(e);
+        }
+    }
+
+    /** Sets the first two parameters (id1, id2) of a statement. */
+    private static void setId(PreparedStatement ps, Tuple<Long, Long> id) throws SQLException {
+        ps.setLong(1, id.getFirst());
+        ps.setLong(2, id.getSecond());
+    }
+
+    /** The only place where a row of {@code friendships} becomes a {@link Prietenie}. */
+    private static Prietenie toPrietenie(ResultSet rs) throws SQLException {
+        return new Prietenie(rs.getLong("id1"), rs.getLong("id2"), rs.getTimestamp("friends_from").toLocalDateTime());
     }
 }
