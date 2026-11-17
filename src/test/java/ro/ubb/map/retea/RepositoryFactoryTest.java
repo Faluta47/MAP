@@ -119,4 +119,24 @@ class RepositoryFactoryTest {
         p.setProperty("repository.type", "MEMORY");
         assertEquals(InMemoryRepository.class, factory(p).createUtilizatorRepository(new UtilizatorValidator()).getClass());
     }
+
+    @Test
+    void utilizatorDeDatabaseSiParolaGoalaSuntAcceptateDarUserLipsaNu() {
+        Properties p = props("DATABASE");
+        p.remove("db.user");
+        ConfigException e = assertThrows(ConfigException.class, () -> factory(p).createUtilizatorRepository(new UtilizatorValidator()));
+        assertTrue(e.getMessage().contains("db.user"));
+        Properties fara = props("DATABASE");
+        fara.remove("db.password");
+        assertTrue(assertThrows(ConfigException.class,
+                () -> factory(fara).createUtilizatorRepository(new UtilizatorValidator())).getMessage().contains("db.password"));
+    }
+
+    @Test
+    void creareaRepositoryuluiDatabaseNuDeschideConexiune() {
+        // an unreachable server: creating the repository must not fail, only the operations do
+        Properties p = props("DATABASE");
+        p.setProperty("db.url", "jdbc:postgresql://localhost:1/socialnetwork");
+        factory(p).createUtilizatorRepository(new UtilizatorValidator());
+    }
 }
