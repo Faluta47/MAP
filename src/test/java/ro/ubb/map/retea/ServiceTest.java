@@ -9,6 +9,7 @@ import ro.ubb.map.retea.exceptions.EntityNotFoundException;
 import ro.ubb.map.retea.exceptions.ServiceException;
 import ro.ubb.map.retea.exceptions.ValidationException;
 import ro.ubb.map.retea.repository.CriteriiUtilizator;
+import ro.ubb.map.retea.repository.IdGenerator;
 import ro.ubb.map.retea.repository.LoadWarnings;
 import ro.ubb.map.retea.repository.memory.InMemoryRepository;
 import ro.ubb.map.retea.service.ComunitateSociabila;
@@ -40,7 +41,7 @@ class ServiceTest {
     @BeforeEach
     void setUp() {
         InMemoryRepository<Long, Utilizator> repoU =
-                new InMemoryRepository<Long, Utilizator>(new UtilizatorValidator());
+                new InMemoryRepository<Long, Utilizator>(new UtilizatorValidator(), IdGenerator.maxPlusOne());
         repoP = new InMemoryRepository<Tuple<Long, Long>, Prietenie>(new PrietenieValidator(repoU));
         utilizatorService = new UtilizatorServiceImpl(repoU, repoP);
         prietenieService = new PrietenieServiceImpl(repoU, repoP);
@@ -208,7 +209,8 @@ class ServiceTest {
 
     @Test
     void ceaMaiSociabilaFaraUtilizatoriEEmpty() {
-        InMemoryRepository<Long, Utilizator> repoU = new InMemoryRepository<>(new UtilizatorValidator());
+        InMemoryRepository<Long, Utilizator> repoU =
+                new InMemoryRepository<>(new UtilizatorValidator(), IdGenerator.maxPlusOne());
         ReteaService gol = new ReteaServiceImpl(repoU,
                 new InMemoryRepository<Tuple<Long, Long>, Prietenie>(new PrietenieValidator(repoU)),
                 new LoadWarnings());

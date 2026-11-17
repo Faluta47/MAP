@@ -3,10 +3,13 @@ package ro.ubb.map.retea.repository.file;
 import ro.ubb.map.retea.domain.Utilizator;
 import ro.ubb.map.retea.exceptions.RepositoryException;
 
+import java.util.stream.Stream;
+
 /**
  * Conversion between a {@link Utilizator} and a line of the users file. Line format:
  * {@code id;prenume;nume} or {@code id;prenume;nume;username} when the user has a username
- * (the friends list is not saved). The methods are static so they can be passed to
+ * (the friends list is not saved). The separator ';' cannot appear in a name written to the file
+ * (see {@link #toLine(Utilizator)}). The methods are static so they can be passed to
  * {@link FileRepository} as method references.
  */
 public final class UtilizatorConverter {
@@ -44,9 +47,17 @@ public final class UtilizatorConverter {
      *
      * @param u the user
      * @return the line to write
+     * @throws RepositoryException if a name contains ';', the field separator of the file format
      */
     public static String toLine(Utilizator u) {
+        if (Stream.of(u.getPrenume(), u.getNume(), u.getUsername()).anyMatch(UtilizatorConverter::contineSeparator)) {
+            throw new RepositoryException("numele nu poate fi salvat in fisier: contine ;");
+        }
         String linie = u.getId() + ";" + u.getPrenume() + ";" + u.getNume();
         return u.getUsername() == null ? linie : linie + ";" + u.getUsername();
+    }
+
+    private static boolean contineSeparator(String valoare) {
+        return valoare != null && valoare.indexOf(';') >= 0;
     }
 }

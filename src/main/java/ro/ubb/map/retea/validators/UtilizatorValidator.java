@@ -4,7 +4,9 @@ import ro.ubb.map.retea.domain.Utilizator;
 import ro.ubb.map.retea.exceptions.ValidationException;
 
 /**
- * Validator for {@link Utilizator}: non-null id, non-blank names and optional username that do not contain the file separator.
+ * Validator for {@link Utilizator}: non-blank names and optional username, without line breaks.
+ * The id may be null: it is assigned by the storage when the user is saved. The file separator ';' is
+ * not checked here, it is a limit of the file format (see UtilizatorConverter).
  */
 public class UtilizatorValidator implements Validator<Utilizator> {
 
@@ -17,9 +19,6 @@ public class UtilizatorValidator implements Validator<Utilizator> {
     @Override
     public void validate(Utilizator u) {
         StringBuilder erori = new StringBuilder();
-        if (u.getId() == null) {
-            erori.append("Id-ul nu poate fi null. ");
-        }
         verificaNume(u.getPrenume(), "Prenumele", erori);
         verificaNume(u.getNume(), "Numele", erori);
         if (u.getUsername() != null) {
@@ -30,12 +29,12 @@ public class UtilizatorValidator implements Validator<Utilizator> {
         }
     }
 
-    /** Checks that a name is not blank and cannot break the line format of the file. */
+    /** Checks that a name is not blank and has no line break. */
     private void verificaNume(String valoare, String eticheta, StringBuilder erori) {
         if (valoare == null || valoare.trim().isEmpty()) {
             erori.append(eticheta).append(" nu poate fi vid. ");
-        } else if (valoare.indexOf(';') >= 0 || valoare.indexOf('\n') >= 0 || valoare.indexOf('\r') >= 0) {
-            erori.append(eticheta).append(" nu poate contine ';' sau sfarsit de linie. ");
+        } else if (valoare.indexOf('\n') >= 0 || valoare.indexOf('\r') >= 0) {
+            erori.append(eticheta).append(" nu poate contine sfarsit de linie. ");
         }
     }
 }

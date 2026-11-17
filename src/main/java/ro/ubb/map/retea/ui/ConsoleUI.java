@@ -101,7 +101,7 @@ public class ConsoleUI implements UI {
         switch (optiune) {
             case "1":
                 Utilizator u = utilizatorService.adaugaUtilizator(citeste("Prenume"), citeste("Nume"));
-                System.out.println("Adaugat: " + u);
+                System.out.println("Utilizator adaugat cu id " + u.getId() + ": " + u);
                 break;
             case "2":
                 System.out.println("Sters: " + utilizatorService.stergeUtilizator(citesteId("Id")));

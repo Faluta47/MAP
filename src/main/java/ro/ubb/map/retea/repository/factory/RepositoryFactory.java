@@ -5,6 +5,7 @@ import ro.ubb.map.retea.domain.Prietenie;
 import ro.ubb.map.retea.domain.Tuple;
 import ro.ubb.map.retea.domain.Utilizator;
 import ro.ubb.map.retea.exceptions.ConfigException;
+import ro.ubb.map.retea.repository.IdGenerator;
 import ro.ubb.map.retea.repository.LoadWarnings;
 import ro.ubb.map.retea.repository.Repository;
 import ro.ubb.map.retea.repository.db.PrietenieDbRepository;
@@ -52,9 +53,11 @@ public class RepositoryFactory {
     public RepositoryFactory(Properties properties, LoadWarnings warnings) {
         this.properties = properties;
 
-        utilizatorCreators.put(RepositoryType.MEMORY, InMemoryRepository::new);
+        utilizatorCreators.put(RepositoryType.MEMORY,
+                validator -> new InMemoryRepository<>(validator, IdGenerator.maxPlusOne()));
         utilizatorCreators.put(RepositoryType.FILE, validator -> new FileRepository<>(required(UTILIZATORI_FILE_KEY),
-                validator, UtilizatorConverter::fromLine, UtilizatorConverter::toLine, warnings));
+                validator, UtilizatorConverter::fromLine, UtilizatorConverter::toLine, warnings,
+                IdGenerator.maxPlusOne()));
         utilizatorCreators.put(RepositoryType.DATABASE, validator -> new UtilizatorDbRepository(validator,
                 required(DB_URL_KEY), required(DB_USER_KEY), present(DB_PASSWORD_KEY)));
 

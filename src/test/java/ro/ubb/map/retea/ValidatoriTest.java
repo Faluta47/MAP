@@ -33,17 +33,27 @@ class ValidatoriTest {
 
     @Test
     void utilizatorInvalidAdunaToateErorile() {
-        ValidationException e = assertThrows(ValidationException.class, () -> utilizatorValidator.validate(utilizator(null, "", " ")));
+        ValidationException e = assertThrows(ValidationException.class, () -> utilizatorValidator.validate(utilizator(1L, "", " ")));
         String m = e.getMessage();
-        assertTrue(m.contains("Id-ul"));
         assertTrue(m.contains("Numele"));
         assertTrue(m.contains("Prenumele"));
     }
 
     @Test
-    void numeCuPunctSiVirgulaEsteInvalid() {
-        ValidationException e = assertThrows(ValidationException.class, () -> utilizatorValidator.validate(utilizator(1L, "Io;n", "Pop")));
+    void numeCuSfarsitDeLinieEsteInvalid() {
+        ValidationException e = assertThrows(ValidationException.class, () -> utilizatorValidator.validate(utilizator(1L, "Io\nn", "Pop")));
         assertTrue(e.getMessage().contains("Prenumele"));
+    }
+
+    @Test
+    void numeCuPunctSiVirgulaEsteValidPentruValidator() {
+        // ';' is a limit of the file format, checked by UtilizatorConverter, not a business rule
+        utilizatorValidator.validate(utilizator(1L, "Io;n", "Pop"));
+    }
+
+    @Test
+    void utilizatorFaraIdEsteValid() {
+        utilizatorValidator.validate(utilizator(null, "Ion", "Pop"));
     }
 
     @Test

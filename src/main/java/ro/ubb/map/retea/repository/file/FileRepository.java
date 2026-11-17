@@ -3,6 +3,7 @@ package ro.ubb.map.retea.repository.file;
 import ro.ubb.map.retea.domain.Entity;
 import ro.ubb.map.retea.exceptions.RepositoryException;
 import ro.ubb.map.retea.exceptions.ValidationException;
+import ro.ubb.map.retea.repository.IdGenerator;
 import ro.ubb.map.retea.repository.LoadWarnings;
 import ro.ubb.map.retea.repository.Repository;
 import ro.ubb.map.retea.repository.memory.InMemoryRepository;
@@ -51,8 +52,25 @@ public class FileRepository<ID, E extends Entity<ID>> implements Repository<ID, 
      */
     public FileRepository(String fileName, Validator<E> validator, Function<String, E> parser,
                           Function<E, String> formatter, LoadWarnings warnings) {
+        this(fileName, validator, parser, formatter, warnings, null);
+    }
+
+    /**
+     * Creates the repository without reading the file (loading is lazy). Entities saved without an id
+     * receive one from the generator; the ids found in the file are always kept.
+     *
+     * @param fileName    the path of the file
+     * @param validator   the validator of the entities
+     * @param parser      builds an entity from a line; throws {@link RepositoryException} if the line is not valid
+     * @param formatter   serializes an entity into a line; throws {@link RepositoryException} if the entity
+     *                    cannot be represented in the file
+     * @param warnings    the collector that receives the warnings produced while loading
+     * @param idGenerator generates the id of an entity saved without one; null if the entities always have an id
+     */
+    public FileRepository(String fileName, Validator<E> validator, Function<String, E> parser,
+                          Function<E, String> formatter, LoadWarnings warnings, IdGenerator<ID, E> idGenerator) {
         this.path = Paths.get(fileName);
-        this.memorie = new InMemoryRepository<>(validator);
+        this.memorie = new InMemoryRepository<>(validator, idGenerator);
         this.parser = parser;
         this.formatter = formatter;
         this.warnings = warnings;
@@ -127,13 +145,23 @@ public class FileRepository<ID, E extends Entity<ID>> implements Repository<ID, 
         return memorie.findAll();
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * An entity without id receives one from the generator (if any). If the entity cannot be written to
+     * the file (see the formatter), the file and the memory are left unchanged.
+     */
     @Override
     public Optional<E> save(E entity) {
         ensureLoaded();
         Optional<E> rezultat = memorie.save(entity);
         if (!rezultat.isPresent()) {
-            writeData();
+            try {
+                writeData();
+            } catch (RepositoryException e) {
+                // the file was not changed, so the entity must not stay in memory either
+                memorie.delete(entity.getId());
+                throw e;
+            }
         }
         return rezultat;
     }
@@ -153,9 +181,16 @@ public class FileRepository<ID, E extends Entity<ID>> implements Repository<ID, 
     @Override
     public Optional<E> update(E entity) {
         ensureLoaded();
+        Optional<E> anterior = entity == null || entity.getId() == null ? Optional.empty() : memorie.findOne(entity.getId());
         Optional<E> rezultat = memorie.update(entity);
         if (!rezultat.isPresent()) {
-            writeData();
+            try {
+                writeData();
+            } catch (RepositoryException e) {
+                // the file was not changed, so the previous version must be restored in memory
+                anterior.ifPresent(memorie::update);
+                throw e;
+            }
         }
         return rezultat;
     }
