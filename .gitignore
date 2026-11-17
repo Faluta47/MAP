@@ -35,3 +35,6 @@ build/
 out/
 .idea/
 *.iml
+
+### Local configuration with credentials (copy config.example.properties to config.properties) ###
+src/main/resources/config.properties

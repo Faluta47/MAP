@@ -1,1 +1,1 @@
-rootProject.name = 'retea-sociala'
+rootProject.name = "retea-sociala"
